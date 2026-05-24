@@ -39,6 +39,7 @@ function gameReducer(state, action) {
     case 'ACTION_SWAP':          return engine.actionSwap(state, action.position);
     case 'ACTION_USE_POWER':     return engine.actionUsePower(state);
     case 'ACTION_DISCARD':       return engine.actionDiscard(state);
+    case 'ACTION_SELF_ELIM':     return engine.actionSelfElim(state, action.position);
     case 'POWER_SELECT':         return engine.powerSelect(state, action.targetPlayerId, action.position);
     case 'POWER_CONFIRM_REVEAL': return engine.powerConfirmReveal(state);
     case 'POWER_SWAP_SECOND':    return engine.powerSwapSecond(state, action.targetPlayerId, action.position);
@@ -97,6 +98,13 @@ function OfflineGame({ onExit }) {
       resetUiMode();
       return;
     }
+    if (uiMode === 'self_elim') {
+      const active = gs.players[gs.currentTurnIndex];
+      if (playerId !== active.id) return;
+      dispatch({ type: 'ACTION_SELF_ELIM', position });
+      resetUiMode();
+      return;
+    }
   }
 
   if (!gameState) return <SetupScreen onStart={(names) => dispatch({ type: 'START_GAME', playerNames: names })} onBack={onExit} />;
@@ -124,6 +132,7 @@ function OfflineGame({ onExit }) {
       onBeginSwap={() => setUiMode('swap')}
       onUsePower={() => dispatch({ type: 'ACTION_USE_POWER' })}
       onDiscardDrawn={() => dispatch({ type: 'ACTION_DISCARD' })}
+      onBeginSelfElim={() => setUiMode('self_elim')}
       onConfirmReveal={() => dispatch({ type: 'POWER_CONFIRM_REVEAL' })}
       onCallMine={(pid) => dispatch({ type: 'CALL_MINE', playerId: pid })}
       onMineNoCall={() => dispatch({ type: 'MINE_NO_CALL' })}
@@ -191,6 +200,12 @@ function OnlineGame({ token, myPlayerId, onExit }) {
     }
     if (uiMode === 'mine_opp_elim') {
       send(EVENTS.MINE_OPP_ELIM, { targetPlayerId: playerId, position });
+      resetUiMode();
+      return;
+    }
+    if (uiMode === 'self_elim') {
+      if (playerId !== myPlayerId) return;
+      send(EVENTS.ACTION_SELF_ELIM, { position });
       resetUiMode();
       return;
     }
@@ -276,7 +291,8 @@ function OnlineGame({ token, myPlayerId, onExit }) {
         onBeginSwap={() => setUiMode('swap')}
         onUsePower={() => send(EVENTS.ACTION_USE_POWER)}
         onDiscardDrawn={() => send(EVENTS.ACTION_DISCARD)}
-        onConfirmReveal={() => {}}
+        onBeginSelfElim={() => setUiMode('self_elim')}
+        onConfirmReveal={() => send(EVENTS.POWER_CONFIRM_REVEAL)}
         onCallMine={() => send(EVENTS.CALL_MINE)}
         onMineNoCall={() => send(EVENTS.MINE_NO_CALL)}
         onBeginMineExchange={() => setUiMode('mine_exchange')}

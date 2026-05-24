@@ -1,9 +1,8 @@
 import React from 'react';
 import { POWER_TYPES } from '@shared/constants.js';
-import { SUIT_SYMBOLS, SUIT_COLORS } from '@shared/cards.js';
 import Card from './Card.jsx';
 
-export default function ActionPanel({ gameState, uiMode, onCallCabo, onDrawCard, onBeginSwap, onUsePower, onDiscardDrawn, onCancelUiMode }) {
+export default function ActionPanel({ gameState, uiMode, onCallCabo, onDrawCard, onBeginSwap, onUsePower, onDiscardDrawn, onBeginSelfElim, onCancelUiMode }) {
   const { phase, drawnCard, players, currentTurnIndex } = gameState;
   const activePlayer = players[currentTurnIndex];
 
@@ -23,8 +22,32 @@ export default function ActionPanel({ gameState, uiMode, onCallCabo, onDrawCard,
   if (phase === 'ACTION' && drawnCard) {
     const hasPower = drawnCard.power !== POWER_TYPES.NONE;
 
+    if (uiMode === 'swap') {
+      return (
+        <div className="panel" style={{ maxWidth: '400px', width: '100%' }}>
+          <h3 style={{ marginBottom: '0.5rem' }}>Swap — Select Your Card</h3>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+            Click one of <strong>{activePlayer.name}</strong>'s face-down cards to replace it with the drawn card.
+          </p>
+          <button className="btn btn-outline" onClick={onCancelUiMode}>Cancel</button>
+        </div>
+      );
+    }
+
+    if (uiMode === 'self_elim') {
+      return (
+        <div className="panel" style={{ maxWidth: '400px', width: '100%' }}>
+          <h3 style={{ marginBottom: '0.5rem' }}>Eliminate — Select Your Card</h3>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+            Click one of your face-down cards. If its value matches the drawn card ({drawnCard.rank} = {drawnCard.value} pts), both are removed. Otherwise the drawn card is added to your hand.
+          </p>
+          <button className="btn btn-outline" onClick={onCancelUiMode}>Cancel</button>
+        </div>
+      );
+    }
+
     return (
-      <div className="panel" style={{ maxWidth: '400px', width: '100%' }}>
+      <div className="panel" style={{ maxWidth: '420px', width: '100%' }}>
         <h3 style={{ marginBottom: '0.75rem' }}>Choose Action</h3>
 
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
@@ -40,38 +63,30 @@ export default function ActionPanel({ gameState, uiMode, onCallCabo, onDrawCard,
                        : 'Swap any two cards'}
               </div>
             )}
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              {uiMode === 'swap' ? 'Click one of your cards to replace it.' : 'Choose what to do with this card.'}
-            </p>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Choose what to do with this card.</p>
           </div>
         </div>
 
-        {uiMode === 'swap' ? (
-          <div className="flex-row">
-            <button className="btn btn-outline" onClick={onCancelUiMode}>Cancel Swap</button>
-          </div>
-        ) : (
-          <div className="flex-row" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button className="btn btn-primary" onClick={onBeginSwap}>Swap with My Card</button>
             {hasPower && (
               <button className="btn btn-success" onClick={onUsePower}>Use Power</button>
             )}
-            <button className="btn btn-outline" onClick={onDiscardDrawn}>Discard</button>
           </div>
-        )}
-      </div>
-    );
-  }
-
-  if (phase === 'CABO_RESOLUTION') {
-    return (
-      <div className="panel" style={{ maxWidth: '400px', width: '100%', textAlign: 'center' }}>
-        <div className="cabo-badge">CABO!</div>
-        <p style={{ marginTop: '0.5rem' }}>
-          {gameState.players.find(p => p.id === gameState.caboCaller)?.name} has called Cabo.
-          All cards are now revealed.
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button className="btn btn-danger" onClick={onBeginSelfElim} title="Try to match this card against one of your own — removes both on success">
+              Eliminate
+            </button>
+            <button className="btn btn-outline" onClick={onDiscardDrawn}>
+              Discard
+            </button>
+          </div>
+        </div>
+        <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+          <strong>Eliminate:</strong> match drawn card vs your own → both removed on success, drawn card added to hand on fail.<br />
+          <strong>Discard:</strong> throw away drawn card (no effect).
         </p>
-        <button className="btn btn-primary mt-md" onClick={() => {}}>Calculate Scores</button>
       </div>
     );
   }

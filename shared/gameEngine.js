@@ -44,10 +44,9 @@ function drawPenaltyCard(state, playerId) {
   const player = s.players.find(p => p.id === playerId);
   const emptyPos = POSITIONS.find(pos => player.cards[pos] === null);
   if (emptyPos) {
-    // Fill the first empty slot in the 2×2 grid
     return { ...s, deck: newDeck, players: setCard(s.players, playerId, emptyPos, card) };
   }
-  // Grid is full — card goes into overflow (counts toward score, shown separately)
+  // Grid full — overflow
   const newPlayers = s.players.map(p =>
     p.id === playerId ? { ...p, extraCards: [...(p.extraCards ?? []), card] } : p
   );
@@ -84,18 +83,22 @@ export function createInitialState(playerNames) {
     revealingPlayerIndex: 0,
     phase: PHASES.INITIAL_REVEAL,
     drawnCard: null,
-    powerPending: null,   // { type: POWER_TYPES.* }
-    powerReveal: null,    // { viewerId, targetPlayerId, position, card }
-    swapFirst: null,      // { playerId, position } — first pick for SWAP power
-    mineWinner: null,     // playerId
-    mineChainMode: null,  // null | 'exchange' | 'elimination'
-    mineCalledBy: [],     // playerIds who called Mine in this chain — cannot call again
+    powerPending: null,
+    powerReveal: null,
+    swapFirst: null,
+    mineWinner: null,
+    mineChainMode: null,
+    // mineLastActedBy: playerId of whoever last performed an exchange/elimination in this
+    // Mine chain. That player cannot call Mine again until someone else acts.
+    mineLastActedBy: null,
     caboCaller: null,
     handValues: null,
     roundScores: null,
     caboSuccess: null,
     cumulativeScores,
     roundNumber: 1,
+    // lastMove: human-readable summary of the last card movement for the UI flash banner
+    lastMove: null,
     log: ['Game created'],
   };
 }
@@ -145,7 +148,7 @@ export function drawCard(state) {
 export function actionSwap(state, position) {
   const player = state.players[state.currentTurnIndex];
   const replaced = player.cards[position];
-  if (!replaced) return state; // empty slot
+  if (!replaced) return state;
 
   const newPlayers = setCard(state.players, player.id, position, state.drawnCard);
   return addLog({
@@ -154,6 +157,7 @@ export function actionSwap(state, position) {
     discardPile: [...state.discardPile, replaced],
     drawnCard: null,
     phase: PHASES.MINE,
+    lastMove: `${player.name} swapped their ${position} card (discarded ${replaced.rank})`,
   }, `${player.name} swaps ${position}, discards ${replaced.rank}`);
 }
 
@@ -163,14 +167,14 @@ export function actionUsePower(state) {
   const card = state.drawnCard;
   if (card.power === POWER_TYPES.NONE) return state;
 
-  const phase = card.power === POWER_TYPES.SWAP ? PHASES.POWER_SELECT : PHASES.POWER_SELECT;
   return addLog({
     ...state,
     discardPile: [...state.discardPile, card],
     drawnCard: null,
-    phase,
+    phase: PHASES.POWER_SELECT,
     powerPending: { type: card.power },
     swapFirst: null,
+    lastMove: `${player.name} uses ${card.power} power (${card.rank})`,
   }, `${player.name} uses ${card.power} power (${card.rank})`);
 }
 
@@ -183,7 +187,55 @@ export function actionDiscard(state) {
     discardPile: [...state.discardPile, card],
     drawnCard: null,
     phase: PHASES.MINE,
+    lastMove: `${player.name} discarded ${card.rank} (value ${card.value})`,
   }, `${player.name} discards ${card.rank}`);
+}
+
+// Option D: self-eliminate drawn card against own face-down card
+// Success: both cards removed. Failure: drawn card added to hand as penalty.
+export function actionSelfElim(state, position) {
+  const player = state.players[state.currentTurnIndex];
+  const ownCard = player.cards[position];
+  const drawn = state.drawnCard;
+  if (!ownCard || !drawn) return state;
+
+  const success = ownCard.value === drawn.value;
+
+  if (success) {
+    const newPlayers = setCard(state.players, player.id, position, null);
+    return addLog({
+      ...state,
+      players: newPlayers,
+      discardPile: [...state.discardPile, drawn],
+      drawnCard: null,
+      phase: PHASES.MINE,
+      lastMove: `${player.name} eliminated their ${position} card (${ownCard.rank}) using drawn ${drawn.rank}! SUCCESS`,
+    }, `${player.name} self-eliminates ${position} (${ownCard.rank}==${drawn.rank})! SUCCESS`);
+  }
+
+  // Failure: drawn card goes to hand as penalty
+  const emptyPos = POSITIONS.find(pos => player.cards[pos] === null);
+  if (emptyPos) {
+    const newPlayers = setCard(state.players, player.id, emptyPos, drawn);
+    return addLog({
+      ...state,
+      players: newPlayers,
+      drawnCard: null,
+      phase: PHASES.MINE,
+      lastMove: `${player.name} tried to eliminate ${position} (${ownCard.rank}) but drew ${drawn.rank} — mismatch, card added to hand`,
+    }, `${player.name} self-elim FAILED (own: ${ownCard.rank} vs drawn: ${drawn.rank}) — drawn card to hand`);
+  }
+  // Grid full → extraCards
+  const newPlayers = state.players.map(p =>
+    p.id === player.id ? { ...p, extraCards: [...(p.extraCards ?? []), drawn] } : p
+  );
+  return addLog({
+    ...state,
+    players: newPlayers,
+    drawnCard: null,
+    phase: PHASES.MINE,
+    lastMove: `${player.name} self-elim FAILED — drawn card added to hand (overflow)`,
+  }, `${player.name} self-elim FAILED — drawn card to hand (overflow)`);
 }
 
 // ─── power: select target card ────────────────────────────────────────────────
@@ -223,7 +275,6 @@ export function powerSwapSecond(state, targetPlayerId, position) {
   const { swapFirst } = state;
   const current = state.players[state.currentTurnIndex];
   if (swapFirst.playerId === targetPlayerId && swapFirst.position === position) {
-    // Deselect first pick
     return { ...state, swapFirst: null, phase: PHASES.POWER_SELECT };
   }
 
@@ -254,6 +305,7 @@ export function powerSwapSecond(state, targetPlayerId, position) {
     phase: PHASES.MINE,
     powerPending: null,
     swapFirst: null,
+    lastMove: `${current.name} swapped cards via power (${p1.name} ${swapFirst.position} ↔ ${p2.name} ${position})`,
   }, `${current.name} swaps cards via power`);
 }
 
@@ -262,12 +314,14 @@ export function powerSwapSecond(state, targetPlayerId, position) {
 export function callMine(state, playerId) {
   const current = state.players[state.currentTurnIndex];
   if (playerId === current.id) return state; // active player cannot call Mine
-  if ((state.mineCalledBy ?? []).includes(playerId)) return state; // already used Mine this chain
+  // Player who last performed an exchange/elimination cannot call Mine again until
+  // at least one more exchange/elimination by a different player occurs.
+  if (state.mineLastActedBy === playerId) return state;
   const caller = state.players.find(p => p.id === playerId);
   return addLog({
     ...state,
     mineWinner: playerId,
-    mineCalledBy: [...(state.mineCalledBy ?? []), playerId],
+    mineCalledBy: [...(state.mineCalledBy ?? []), playerId], // kept for legacy compat
     phase: PHASES.MINE_ACTION,
   }, `${caller.name} calls Mine!`);
 }
@@ -279,8 +333,10 @@ export function mineNoCall(state) {
     currentTurnIndex: nextTurnIndex(state),
     mineChainMode: null,
     mineWinner: null,
-    mineCalledBy: [],   // chain ends — reset for next Mine phase
+    mineLastActedBy: null,  // chain ends — anyone can Mine next time
+    mineCalledBy: [],
     powerReveal: null,
+    lastMove: null,
   }, 'No Mine — turn ends');
 }
 
@@ -288,7 +344,7 @@ export function mineNoCall(state) {
 
 // Exchange: swap top discard with one of mine winner's own cards
 export function mineExchange(state, position) {
-  if (state.mineChainMode === 'elimination') return state; // not allowed after elim in chain
+  if (state.mineChainMode === 'elimination') return state;
   const winner = state.players.find(p => p.id === state.mineWinner);
   const discard = topDiscard(state);
   const ownCard = winner.cards[position];
@@ -302,7 +358,9 @@ export function mineExchange(state, position) {
     discardPile: newDiscard,
     mineWinner: null,
     mineChainMode: 'exchange',
+    mineLastActedBy: winner.id,
     phase: PHASES.MINE,
+    lastMove: `${winner.name} exchanged their ${position} card (${ownCard.rank}) with discard (${discard.rank})`,
   }, `${winner.name} exchanges with discard — new Mine phase`);
 }
 
@@ -323,17 +381,20 @@ export function mineSelfElim(state, position) {
       discardPile: newDiscard,
       mineWinner: null,
       mineChainMode: 'elimination',
+      mineLastActedBy: winner.id,
       phase: PHASES.MINE,
+      lastMove: `${winner.name} eliminated their ${position} card (${ownCard.rank})! SUCCESS`,
     }, `${winner.name} self-eliminates ${ownCard.rank}! SUCCESS`);
   }
 
-  // Failure: draw penalty card
   let s = drawPenaltyCard(state, winner.id);
   return addLog({
     ...s,
     mineWinner: null,
     mineChainMode: 'elimination',
+    mineLastActedBy: winner.id,
     phase: PHASES.MINE,
+    lastMove: `${winner.name} self-elim FAILED (${ownCard.rank} vs discard ${discard.rank}) — penalty card drawn`,
   }, `${winner.name} self-elim FAILED (own: ${ownCard.rank} vs discard: ${discard.rank}) — penalty drawn`);
 }
 
@@ -355,17 +416,20 @@ export function mineOppElim(state, targetPlayerId, position) {
       discardPile: newDiscard,
       mineWinner: null,
       mineChainMode: 'elimination',
+      mineLastActedBy: winner.id,
       phase: PHASES.MINE,
+      lastMove: `${winner.name} eliminated ${target.name}'s ${position} card! SUCCESS`,
     }, `${winner.name} eliminates ${target.name}'s ${position} (${targetCard.rank})! SUCCESS`);
   }
 
-  // Failure: winner draws penalty card; target card NOT publicly revealed
   let s = drawPenaltyCard(state, winner.id);
   return addLog({
     ...s,
     mineWinner: null,
     mineChainMode: 'elimination',
+    mineLastActedBy: winner.id,
     phase: PHASES.MINE,
+    lastMove: `${winner.name} tried to eliminate ${target.name}'s ${position} — FAILED, penalty drawn`,
   }, `${winner.name} opp-elim FAILED — penalty drawn`);
 }
 
@@ -437,11 +501,13 @@ export function startNewRound(state) {
     swapFirst: null,
     mineWinner: null,
     mineChainMode: null,
+    mineLastActedBy: null,
     mineCalledBy: [],
     caboCaller: null,
     handValues: null,
     roundScores: null,
     caboSuccess: null,
+    lastMove: null,
     roundNumber: state.roundNumber + 1,
     log: [`Round ${state.roundNumber + 1} begins`],
   };

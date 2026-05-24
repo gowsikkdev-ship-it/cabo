@@ -8,19 +8,24 @@ import MineCountdown from './MineCountdown.jsx';
  * Offline (myPlayerId=null): buttons for each eligible player.
  * Online (myPlayerId set, mineWindow provided): single "Mine!" button for the
  * current player if they are eligible and the window is open.
+ *
+ * Eligibility rule: a player cannot call Mine if they were the last one to
+ * perform an exchange or elimination (mineLastActedBy). They must wait for
+ * another player to act first. The active player can never call Mine.
  */
 export default function MinePhasePanel({ gameState, myPlayerId = null, mineWindow = null, onCallMine, onMineNoCall }) {
-  const { players, currentTurnIndex, discardPile, mineChainMode, mineCalledBy = [] } = gameState;
+  const { players, currentTurnIndex, discardPile, mineChainMode, mineLastActedBy = null } = gameState;
   const activePlayer = players[currentTurnIndex];
   const discard = discardPile.length > 0 ? discardPile[discardPile.length - 1] : null;
   const nonActivePlayers = players.filter(p => p.id !== activePlayer.id);
-  const eligiblePlayers = nonActivePlayers.filter(p => !mineCalledBy.includes(p.id));
-  const exhaustedPlayers = nonActivePlayers.filter(p => mineCalledBy.includes(p.id));
+  const eligiblePlayers  = nonActivePlayers.filter(p => p.id !== mineLastActedBy);
+  const cooldownPlayer   = nonActivePlayers.find(p => p.id === mineLastActedBy) ?? null;
 
-  const isOnline = myPlayerId !== null && mineWindow !== null;
-  const windowOpen = mineWindow !== null;
+  const isOnline    = myPlayerId !== null && mineWindow !== null;
+  const windowOpen  = mineWindow !== null;
   const iAmEligible = isOnline && eligiblePlayers.some(p => p.id === myPlayerId);
-  const iAmActive = myPlayerId === activePlayer.id;
+  const iAmActive   = myPlayerId === activePlayer.id;
+  const iAmCooldown = myPlayerId === mineLastActedBy;
 
   return (
     <div className="panel" style={{ maxWidth: '480px', width: '100%' }}>
@@ -42,9 +47,11 @@ export default function MinePhasePanel({ gameState, myPlayerId = null, mineWindo
             {isOnline
               ? (iAmActive
                   ? 'Waiting for other players to react…'
-                  : iAmEligible
-                    ? 'Call Mine! before the window closes!'
-                    : 'You already called Mine this chain.')
+                  : iAmCooldown
+                    ? 'You just acted — wait for another player to Mine first.'
+                    : iAmEligible
+                      ? 'Call Mine! before the window closes!'
+                      : 'No eligible players.')
               : (eligiblePlayers.length > 0
                   ? 'Non-active players may call Mine! to react to this discard.'
                   : 'No eligible players — end the turn.')}
@@ -75,14 +82,13 @@ export default function MinePhasePanel({ gameState, myPlayerId = null, mineWindo
         </div>
       )}
 
-      {exhaustedPlayers.length > 0 && (
+      {cooldownPlayer && (
         <div style={{ marginBottom: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          Already called Mine this chain:{' '}
-          {exhaustedPlayers.map(p => p.name).join(', ')}
+          On cooldown (just acted): <strong>{cooldownPlayer.name}</strong>
         </div>
       )}
 
-      {/* Offline: explicit end-turn button. Online: host/active player sees this when no window */}
+      {/* Offline: explicit end-turn button. Online: active player sees this when no window */}
       {(!isOnline || (iAmActive && !windowOpen)) && (
         <button className="btn btn-outline w-full" onClick={onMineNoCall}>
           No Mine — End Turn

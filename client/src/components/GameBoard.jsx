@@ -20,6 +20,7 @@ export default function GameBoard({
   onBeginSwap,
   onUsePower,
   onDiscardDrawn,
+  onBeginSelfElim,
   onConfirmReveal,
   onCallMine,
   onMineNoCall,
@@ -45,6 +46,9 @@ export default function GameBoard({
     const nonNull = pos => player.cards[pos] !== null && player.cards[pos]?.hidden !== true;
 
     if (phase === PHASES.ACTION && uiMode === 'swap' && player.id === activePlayer.id && isMyTurn) {
+      return POSITIONS.filter(nonNull);
+    }
+    if (phase === PHASES.ACTION && uiMode === 'self_elim' && player.id === activePlayer.id && isMyTurn) {
       return POSITIONS.filter(nonNull);
     }
     if (phase === PHASES.POWER_SELECT && powerPending && isMyTurn) {
@@ -80,6 +84,8 @@ export default function GameBoard({
     [PHASES.CABO_RESOLUTION]: 'CABO! — All Cards Revealed',
   }[phase] ?? phase;
 
+  const lastMove = gameState.lastMove ?? null;
+
   return (
     <div className="game-board">
       {/* Top bar */}
@@ -89,6 +95,22 @@ export default function GameBoard({
           Round {gameState.roundNumber}
         </span>
       </div>
+
+      {/* Last action flash */}
+      {lastMove && (
+        <div style={{
+          background: 'rgba(212,160,23,0.12)',
+          border: '1px solid rgba(212,160,23,0.25)',
+          borderRadius: '6px',
+          padding: '0.35rem 0.75rem',
+          fontSize: '0.78rem',
+          color: 'var(--gold-light)',
+          margin: '0 0 0.5rem',
+          textAlign: 'center',
+        }}>
+          {lastMove}
+        </div>
+      )}
 
       {/* Center: players + piles */}
       <div className="board-center">
@@ -187,6 +209,7 @@ export default function GameBoard({
             onBeginSwap={onBeginSwap}
             onUsePower={onUsePower}
             onDiscardDrawn={onDiscardDrawn}
+            onBeginSelfElim={onBeginSelfElim}
             onCancelUiMode={onCancelUiMode}
           />
         )}

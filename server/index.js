@@ -34,6 +34,7 @@ import {
   actionSwap,
   actionUsePower,
   actionDiscard,
+  actionSelfElim,
   powerSelect,
   powerConfirmReveal,
   powerSwapSecond,
@@ -353,10 +354,21 @@ io.on('connection', (socket) => {
 
     const next = applyAndBroadcast(room.code, (s) => actionDiscard(s));
 
-    // Open Mine window after a discard
-    if (next?.phase === PHASES.MINE) {
-      openMineWindow(room.code);
-    }
+    if (next?.phase === PHASES.MINE) openMineWindow(room.code);
+  });
+
+  socket.on(EVENTS.ACTION_SELF_ELIM, ({ position } = {}) => {
+    if (rateLimited(socket)) return;
+    const room = rooms.getRoomBySocket(socket.id);
+    if (!room) return;
+    const state = getState(room.code);
+    if (!state) return;
+    if (!assertTurn(socket, state, PHASES.ACTION)) return;
+    if (typeof position !== 'string') return emitError(socket, 'position required');
+
+    const next = applyAndBroadcast(room.code, (s) => actionSelfElim(s, position));
+
+    if (next?.phase === PHASES.MINE) openMineWindow(room.code);
   });
 
   socket.on(EVENTS.POWER_SELECT, ({ targetPlayerId, position }) => {
@@ -536,7 +548,7 @@ io.on('connection', (socket) => {
     if (!room) return;
     const state = getState(room.code);
     if (!state) return;
-    if (state.phase !== PHASES.ROUND_END) return;
+    if (state.phase !== PHASES.ROUND_OVER) return;
     applyAndBroadcast(room.code, (s) => startNewRound(s));
   });
 
