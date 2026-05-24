@@ -423,7 +423,7 @@ io.on('connection', (socket) => {
 
   // ── Mine action phase (after winner is determined) ───────────────────────────
 
-  socket.on(EVENTS.MINE_EXCHANGE, () => {
+  socket.on(EVENTS.MINE_EXCHANGE, ({ position } = {}) => {
     if (rateLimited(socket)) return;
     const room = rooms.getRoomBySocket(socket.id);
     if (!room) return;
@@ -431,8 +431,9 @@ io.on('connection', (socket) => {
     if (!state) return;
     if (state.phase !== PHASES.MINE_ACTION) return emitError(socket, 'Wrong phase');
     if (state.mineWinner !== socket.playerId) return emitError(socket, 'Not the Mine winner');
+    if (typeof position !== 'string') return emitError(socket, 'position required');
 
-    const next = applyAndBroadcast(room.code, (s) => mineExchange(s));
+    const next = applyAndBroadcast(room.code, (s) => mineExchange(s, position));
 
     // After exchange, open another Mine window on the new discard
     if (next?.phase === PHASES.MINE) {

@@ -4,6 +4,7 @@ import Card from './Card.jsx';
 export default function MineActionPanel({
   gameState,
   uiMode,
+  myPlayerId = null,
   onBeginMineExchange,
   onBeginMineSelfElim,
   onBeginMineOppElim,
@@ -11,6 +12,17 @@ export default function MineActionPanel({
 }) {
   const { mineWinner, mineChainMode, discardPile, players } = gameState;
   const winner = players.find(p => p.id === mineWinner);
+  const isOnline = myPlayerId !== null;
+  const iAmWinner = !isOnline || myPlayerId === mineWinner;
+
+  // Online non-winner: show waiting message
+  if (isOnline && !iAmWinner) {
+    return (
+      <div className="panel" style={{ maxWidth: '400px', width: '100%', textAlign: 'center', color: 'var(--text-muted)' }}>
+        Waiting for <strong style={{ color: 'var(--gold-light)' }}>{winner?.name}</strong> to choose a Mine action…
+      </div>
+    );
+  }
   const discard = discardPile.length > 0 ? discardPile[discardPile.length - 1] : null;
   const canExchange = mineChainMode !== 'elimination';
 

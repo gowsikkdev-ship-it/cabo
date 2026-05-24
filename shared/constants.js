@@ -37,7 +37,7 @@ export const PHASES = {
   GAME_OVER: 'GAME_OVER',
 };
 
-export const MINE_WINDOW_MS = 2000;
+export const MINE_WINDOW_MS = 5000;
 export const FAILED_CABO_PENALTY = 50;
 export const MAX_SCORE = 100;
 export const CARDS_PER_PLAYER = 4;

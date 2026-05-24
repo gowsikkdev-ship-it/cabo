@@ -158,6 +158,7 @@ export default function GameBoard({
           <MineActionPanel
             gameState={gameState}
             uiMode={uiMode}
+            myPlayerId={myPlayerId}
             onBeginMineExchange={onBeginMineExchange}
             onBeginMineSelfElim={onBeginMineSelfElim}
             onBeginMineOppElim={onBeginMineOppElim}
