@@ -1,0 +1,252 @@
+
+<style>
+  .phase { margin-bottom: 24px; }
+  .phase-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer; user-select: none; }
+  .phase-badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  .phase-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
+  .phase-title span { font-size: 12px; font-weight: 400; color: var(--color-text-secondary); margin-left: 6px; }
+  .steps { border-left: 2px solid var(--color-border-tertiary); margin-left: 12px; padding-left: 16px; display: flex; flex-direction: column; gap: 0; }
+  .step { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--color-border-tertiary); }
+  .step:last-child { border-bottom: none; }
+  .step-num { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); min-width: 22px; padding-top: 1px; }
+  .step-body { flex: 1; }
+  .step-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+  .step-desc { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; line-height: 1.5; }
+  .warn { font-size: 11px; font-weight: 500; padding: 1px 7px; border-radius: 10px; display: inline-block; margin-top: 4px; }
+  .warn.red { background: var(--color-background-danger); color: var(--color-text-danger); }
+  .warn.amber { background: var(--color-background-warning); color: var(--color-text-warning); }
+  .badge-p { background: #EEEDFE; color: #3C3489; }
+  .badge-t { background: #E1F5EE; color: #085041; }
+  .badge-c { background: #FAECE7; color: #993C1D; }
+  .badge-b { background: #E6F1FB; color: #0C447C; }
+  .badge-g { background: #EAF3DE; color: #27500A; }
+  .badge-a { background: #FAEEDA; color: #633806; }
+  @media (prefers-color-scheme: dark) {
+    .badge-p { background: #26215C; color: #AFA9EC; }
+    .badge-t { background: #04342C; color: #5DCAA5; }
+    .badge-c { background: #4A1B0C; color: #F0997B; }
+    .badge-b { background: #042C53; color: #85B7EB; }
+    .badge-g { background: #173404; color: #97C459; }
+    .badge-a { background: #412402; color: #EF9F27; }
+  }
+  .week-tag { font-size: 11px; color: var(--color-text-tertiary); padding: 1px 6px; border: 1px solid var(--color-border-tertiary); border-radius: 10px; display: inline-block; margin-top: 4px; }
+  .toggle-btn { font-size: 11px; color: var(--color-text-secondary); border: 1px solid var(--color-border-tertiary); border-radius: 6px; padding: 1px 7px; background: none; cursor: pointer; margin-left: auto; }
+  .collapsible { overflow: hidden; transition: max-height 0.25s ease; }
+  .collapsed { max-height: 0 !important; }
+  h2 { font-size: 18px; font-weight: 500; margin: 0 0 4px; color: var(--color-text-primary); }
+  p.sub { font-size: 13px; color: var(--color-text-secondary); margin: 0 0 20px; }
+</style>
+<div style="padding: 1rem 0">
+<h2>Cabo-like game — step-by-step build plan</h2>
+<p class="sub">16 phases · 6 weeks · click any phase to collapse</p>
+
+<div id="phases"></div>
+</div>
+
+<script>
+const phases = [
+  {
+    id: 1, label: "Phase 1", title: "Finalize rules & edge cases", badge: "badge-p", week: "Week 1",
+    steps: [
+      { n: "1.1", title: "Write the full rulebook", desc: "Define turn order, draw mechanics, swap mechanics, memory system, scoring, and win conditions. This becomes your spec." },
+      { n: "1.2", title: "Define all realtime mechanics", desc: 'Specify exactly: what triggers a "Mine!" event, what counts as an interrupt, what fast-steal rules are.' },
+      { n: "1.3", title: "Answer every edge case", desc: "What if two players click at the same time? What if a player disconnects mid-reaction? Can reactions stack? Write it down." },
+      { n: "1.4", title: "Define timing windows", desc: "Decide: how long is the reaction window (e.g. 300–500ms)? What is the minimum cooldown between actions?", warn: { type: "amber", text: "Do not skip this — vague timing = bugs later" } },
+      { n: "1.5", title: "Write priority resolution rules", desc: "e.g. 'Earliest server-arrival timestamp wins. Ties broken by player order.' Document this formally." },
+    ]
+  },
+  {
+    id: 2, label: "Phase 2", title: "Choose your tech stack", badge: "badge-t", week: "Week 1",
+    steps: [
+      { n: "2.1", title: "Confirm frontend: React + Vite", desc: "Fast setup, easy state management, large ecosystem. Use Vite for the build tool." },
+      { n: "2.2", title: "Confirm backend: Node.js + Socket.IO", desc: "Event-driven, same language as frontend, Socket.IO handles reconnections and rooms automatically." },
+      { n: "2.3", title: "Confirm persistence: PostgreSQL + Redis", desc: "PostgreSQL for accounts/history/rankings. Redis for active rooms and realtime state." },
+      { n: "2.4", title: "Decide on Phaser.js (optional)", desc: "Only add if you need rich card animations. Otherwise, plain React + CSS is sufficient." },
+      { n: "2.5", title: "Pick deployment targets", desc: "Frontend → Vercel. Backend → Railway or Fly.io. If your players are in India, use Mumbai or Singapore servers." },
+    ]
+  },
+  {
+    id: 3, label: "Phase 3", title: "Set up project structure", badge: "badge-t", week: "Week 1",
+    steps: [
+      { n: "3.1", title: "Create monorepo layout", desc: "Folders: /client, /server, /shared, /docs. Keep these separate from day one." },
+      { n: "3.2", title: "Populate /shared", desc: "Add: cards.js (card definitions), constants.js, events.js (socket event names), types.js. Both client and server import from here." },
+      { n: "3.3", title: "Bootstrap frontend", desc: "Run: npm create vite@latest inside /client. Install socket.io-client. Optional: install phaser." },
+      { n: "3.4", title: "Bootstrap backend", desc: "Run: npm init -y inside /server. Install: express, socket.io, cors." },
+      { n: "3.5", title: "Set up git and .gitignore", desc: "Commit the skeleton before writing any logic." },
+    ]
+  },
+  {
+    id: 4, label: "Phase 4", title: "Build the offline prototype", badge: "badge-c", week: "Week 2",
+    steps: [
+      { n: "4.1", title: "Build the deck engine", desc: "Generate a standard deck, shuffle it, implement draw and discard pile logic.", warn: { type: "red", text: "No networking yet — local only" } },
+      { n: "4.2", title: "Implement core actions", desc: "drawCard(state, playerId), swapCard(state, playerId, cardA, cardB), callMine(state, playerId). All pure functions." },
+      { n: "4.3", title: "Build centralized game state", desc: "One gameState object: { players, deck, discardPile, currentTurn, phase, realtimeWindow }. No other place holds state." },
+      { n: "4.4", title: "Separate game logic from UI", desc: "Game engine is a plain JS module. UI reads from it and sends events to it. Buttons never modify state directly.", warn: { type: "red", text: "Critical — don't mix logic and UI" } },
+      { n: "4.5", title: "Run the full game loop on one device", desc: "Simulate 2–4 players taking turns on one screen. Verify win conditions, scoring, and turn transitions." },
+      { n: "4.6", title: "Write unit tests for game logic", desc: "Test each pure function. Easy now, lifesaving later." },
+    ]
+  },
+  {
+    id: 5, label: "Phase 5", title: "Add WebSocket networking", badge: "badge-b", week: "Week 3",
+    steps: [
+      { n: "5.1", title: "Create the Socket.IO server", desc: "Server listens for connections. All game logic runs here. Client only sends action names, never outcomes." },
+      { n: "5.2", title: "Define all socket events", desc: "Use your shared/events.js file. e.g. DRAW_CARD, SWAP_CARD, CALL_MINE. Never send game state from the client." },
+      { n: "5.3", title: "Build the room system", desc: "Implement: create room, generate join code, join by code, leave/disconnect handling. Store rooms in Redis." },
+      { n: "5.4", title: "Add server-side action validation", desc: "For every incoming event: check player is in room, check it's their turn, check action is legal. Reject anything invalid." },
+      { n: "5.5", title: "Broadcast state updates", desc: "After each valid action: update state, then emit the new state to all clients in the room. Send only diffs if possible." },
+      { n: "5.6", title: "Test with multiple browser tabs", desc: "Open 3–4 tabs, join the same room code, play a full game manually." },
+    ]
+  },
+  {
+    id: 6, label: "Phase 6", title: "Build the realtime reaction system", badge: "badge-c", week: "Week 4",
+    steps: [
+      { n: "6.1", title: "Implement reaction window opening", desc: "Server emits REACTION_WINDOW_OPEN with a timestamp. All clients can now send reactions." },
+      { n: "6.2", title: "Collect all reactions server-side", desc: "For each incoming reaction, record: playerId + server receive timestamp. Do not resolve immediately." },
+      { n: "6.3", title: "Close window and resolve winner", desc: "After the window (e.g. 500ms), find the earliest valid player. Broadcast REACTION_RESULT with the winner." },
+      { n: "6.4", title: "Handle the Mine! event specifically", desc: "socket.emit('mine_click') from client → server records arrival → winner = earliestValidPlayer() → broadcast result." },
+      { n: "6.5", title: "Handle simultaneous reactions", desc: "Server is the only arbiter. If two arrive in the same millisecond, use player seat order as a tiebreaker." },
+      { n: "6.6", title: "Test reaction system with artificial delay", desc: "Use Chrome DevTools network throttling to simulate bad connections and verify the server resolves correctly." },
+    ]
+  },
+  {
+    id: 7, label: "Phase 7", title: "Add latency compensation", badge: "badge-b", week: "Week 5",
+    steps: [
+      { n: "7.1", title: "Measure round-trip ping per player", desc: "Server pings each client periodically. Store a rolling average of their latency." },
+      { n: "7.2", title: "Apply adjusted timing formula", desc: "Adjusted Time = Receive Time − (Ping / 2). Use this when comparing reaction timestamps between players." },
+      { n: "7.3", title: "Design forgiving windows", desc: "Humans react in 150–300ms. Design windows ≥ 100ms with buffered inputs. Avoid millisecond-precision races." },
+      { n: "7.4", title: "Validate compensation with 2 clients", desc: "Simulate one client with 10ms ping and one with 200ms ping. Verify neither has a structural advantage." },
+    ]
+  },
+  {
+    id: 8, label: "Phase 8", title: "Add reconnection handling", badge: "badge-b", week: "Week 5",
+    steps: [
+      { n: "8.1", title: "Detect disconnects", desc: "On socket disconnect: mark player as disconnected, pause their turns, start a 20-second reconnection timer." },
+      { n: "8.2", title: "Hold game state in Redis", desc: "Full game state must survive a server process restart. Store in Redis with the room key." },
+      { n: "8.3", title: "Restore state on rejoin", desc: "When a player reconnects with their ID: send them the full current game state, their private card info, and current timers." },
+      { n: "8.4", title: "Handle timeout", desc: "If the reconnection window expires: forfeit the player's turn, remove them from the room, continue the game." },
+    ]
+  },
+  {
+    id: 9, label: "Phase 9", title: "Anti-cheat & security", badge: "badge-c", week: "Week 5",
+    steps: [
+      { n: "9.1", title: "Keep all secret info server-side", desc: "Clients must never receive the deck order, opponent hidden cards, or future draws. Send only what a player is allowed to see." },
+      { n: "9.2", title: "Validate every packet", desc: "Never trust: 'I swapped cards', 'I drew a King'. Trust only: 'I took an action'. Server determines the outcome." },
+      { n: "9.3", title: "Add rate limiting", desc: "Limit socket events per player per second. Reject spam clicks and packet floods silently." },
+      { n: "9.4", title: "Sanitize and type-check inputs", desc: "Validate all socket payloads. Reject unexpected fields or malformed packets immediately." },
+    ]
+  },
+  {
+    id: 10, label: "Phase 10", title: "Set up the database", badge: "badge-g", week: "Week 5",
+    steps: [
+      { n: "10.1", title: "Design PostgreSQL schema", desc: "Tables: users (accounts), matches (history), player_stats (rankings), cosmetics." },
+      { n: "10.2", title: "Configure Redis", desc: "Keys: room:{roomId} → game state, queue:matchmaking → player pool, session:{playerId} → auth token." },
+      { n: "10.3", title: "Add basic auth", desc: "Username + password (bcrypt). Issue a session token stored in Redis. Required for match history and rankings." },
+    ]
+  },
+  {
+    id: 11, label: "Phase 11", title: "Polish the UI/UX", badge: "badge-a", week: "Week 6",
+    steps: [
+      { n: "11.1", title: "Add card animations", desc: "CSS transitions for draw, swap, discard. Keep them under 300ms — fast enough to feel snappy.", warn: { type: "amber", text: "Only after gameplay is stable" } },
+      { n: "11.2", title: "Add realtime indicators", desc: "Reaction window flash, countdown timer display, winner highlight, player reaction effects." },
+      { n: "11.3", title: "Add sound effects", desc: "Card draw, swap, Mine! call, win. Keep them short. Use the Web Audio API or a small library." },
+      { n: "11.4", title: "Add avatars and names", desc: "Show each player's avatar and name. Display connection status (connected / reconnecting)." },
+      { n: "11.5", title: "Add emotes (optional)", desc: "Quick emote reactions between players. Good for social engagement." },
+    ]
+  },
+  {
+    id: 12, label: "Phase 12", title: "Performance optimization", badge: "badge-g", week: "Week 6",
+    steps: [
+      { n: "12.1", title: "Minimize data sent per event", desc: "Send { action: 'draw' } not the entire game state. Use event-driven deltas, not continuous state streaming." },
+      { n: "12.2", title: "Diff-based state updates", desc: "Only broadcast what changed. e.g. { updatedPlayer: 2, drewCard: true } not the full gameState object." },
+      { n: "12.3", title: "Profile socket event frequency", desc: "Measure events per second per room. Optimize any handler taking >5ms." },
+    ]
+  },
+  {
+    id: 13, label: "Phase 13", title: "Deploy", badge: "badge-b", week: "Week 6",
+    steps: [
+      { n: "13.1", title: "Deploy frontend to Vercel", desc: "Connect your GitHub repo. Set VITE_SERVER_URL env var to your backend URL. Auto-deploys on push." },
+      { n: "13.2", title: "Deploy backend to Railway or Fly.io", desc: "Use the Mumbai or Singapore region if targeting Indian players. Set all env vars (DB_URL, REDIS_URL, etc.)." },
+      { n: "13.3", title: "Configure CORS", desc: "Allow only your Vercel frontend domain. Block all other origins." },
+      { n: "13.4", title: "Set up SSL", desc: "Vercel and Railway handle this automatically. Confirm wss:// (not ws://) is used for WebSocket connections." },
+    ]
+  },
+  {
+    id: 14, label: "Phase 14", title: "Test thoroughly", badge: "badge-c", week: "Week 6",
+    steps: [
+      { n: "14.1", title: "Local edge case testing", desc: "Test: simultaneous clicks, disconnect during reaction phase, double-click spam, invalid action payloads." },
+      { n: "14.2", title: "Simulated lag testing", desc: "Use Chrome DevTools → Network → throttle to simulate 200ms, 500ms lag. Verify latency compensation works." },
+      { n: "14.3", title: "Reconnection testing", desc: "Kill a tab mid-game. Verify the game pauses, the rejoining player gets their state back, the game resumes." },
+      { n: "14.4", title: "Multi-player stress test", desc: "Run 4+ concurrent rooms. Watch for memory leaks and event handler buildup." },
+      { n: "14.5", title: "Anti-cheat testing", desc: "Try sending forged socket events from the browser console. Verify all are rejected server-side." },
+    ]
+  },
+  {
+    id: 15, label: "Phase 15", title: "Add matchmaking", badge: "badge-g", week: "After launch",
+    steps: [
+      { n: "15.1", title: "Start with manual room codes", desc: "Simple, reliable, no queue logic needed. Good enough for early players." },
+      { n: "15.2", title: "Add public matchmaking queue", desc: "Redis-backed queue. Match first available 4 players into a new room automatically." },
+      { n: "15.3", title: "Add skill ratings (later)", desc: "ELO or TrueSkill. Only implement once you have real match data." },
+    ]
+  },
+  {
+    id: 16, label: "Phase 16", title: "Scale gradually", badge: "badge-a", week: "After launch",
+    steps: [
+      { n: "16.1", title: "Add analytics and monitoring", desc: "Track: active rooms, events/sec, error rates. Use Railway metrics or add Sentry." },
+      { n: "16.2", title: "Add match history and leaderboards", desc: "Once you have real games, surface stats to players. This drives retention." },
+      { n: "16.3", title: "Add spectator mode", desc: "Allow non-playing viewers to watch a room in realtime. Send them the same state broadcasts." },
+      { n: "16.4", title: "Add replay system", desc: "Log every event with timestamps to PostgreSQL. Replay by replaying the event log." },
+    ]
+  },
+];
+
+const container = document.getElementById('phases');
+phases.forEach(p => {
+  const div = document.createElement('div');
+  div.className = 'phase';
+
+  const header = document.createElement('div');
+  header.className = 'phase-header';
+  header.innerHTML = `
+    <span class="phase-badge ${p.badge}">${p.label}</span>
+    <span class="phase-title">${p.title} <span>${p.week}</span></span>
+    <button class="toggle-btn" onclick="togglePhase(${p.id})">collapse</button>
+  `;
+
+  const stepsDiv = document.createElement('div');
+  stepsDiv.className = 'steps collapsible';
+  stepsDiv.id = `phase-${p.id}`;
+  stepsDiv.style.maxHeight = '2000px';
+
+  p.steps.forEach(s => {
+    const step = document.createElement('div');
+    step.className = 'step';
+    step.innerHTML = `
+      <div class="step-num">${s.n}</div>
+      <div class="step-body">
+        <div class="step-title">${s.title}</div>
+        <div class="step-desc">${s.desc}</div>
+        ${s.warn ? `<span class="warn ${s.warn.type}">${s.warn.text}</span>` : ''}
+      </div>
+    `;
+    stepsDiv.appendChild(step);
+  });
+
+  div.appendChild(header);
+  div.appendChild(stepsDiv);
+  container.appendChild(div);
+});
+
+function togglePhase(id) {
+  const el = document.getElementById(`phase-${id}`);
+  const btn = el.previousElementSibling.querySelector('.toggle-btn');
+  if (el.classList.contains('collapsed')) {
+    el.classList.remove('collapsed');
+    el.style.maxHeight = '2000px';
+    btn.textContent = 'collapse';
+  } else {
+    el.classList.add('collapsed');
+    el.style.maxHeight = '0';
+    btn.textContent = 'expand';
+  }
+}
+</script>

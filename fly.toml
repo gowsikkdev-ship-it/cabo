@@ -1,0 +1,32 @@
+# fly.toml — Cabo server on Fly.io (Mumbai region)
+app     = "cabo-server"
+primary_region = "bom"
+
+[build]
+  dockerfile = "server/Dockerfile"
+
+[[services]]
+  protocol   = "tcp"
+  internal_port = 3001
+
+  [[services.ports]]
+    port     = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port     = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type       = "requests"
+    soft_limit = 100
+    hard_limit = 200
+
+[[vm]]
+  memory      = "256mb"
+  cpu_kind    = "shared"
+  cpus        = 1
+
+[env]
+  NODE_ENV = "production"
+  PORT     = "3001"

@@ -1,0 +1,10 @@
+{
+  "name": "cabo",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "client": "npm run dev --prefix client",
+    "server": "npm run dev --prefix server",
+    "test": "npm test --prefix tests"
+  }
+}
