@@ -36,6 +36,15 @@ export default function PowerPanel({ gameState, onConfirmReveal }) {
     );
   }
 
+  if (phase === 'POWER_REVEAL' && !powerReveal) {
+    // Non-viewer sees a waiting message while the active player views privately
+    return (
+      <div className="panel" style={{ maxWidth: '400px', width: '100%', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <strong style={{ color: 'var(--gold-light)' }}>{activePlayer.name}</strong> is privately viewing a card…
+      </div>
+    );
+  }
+
   if (phase === 'POWER_REVEAL' && powerReveal) {
     const { card } = powerReveal;
     const color = SUIT_COLORS[card.suit];

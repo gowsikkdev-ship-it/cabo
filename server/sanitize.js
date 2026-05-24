@@ -40,9 +40,15 @@ export function sanitizeForPlayer(fullState, myPlayerId) {
     return { ...player, cards, extraCards };
   });
 
+  // Only the viewer sees the powerReveal card — everyone else gets null
+  const powerReveal = fullState.powerReveal?.viewerId === myPlayerId
+    ? fullState.powerReveal
+    : null;
+
   return {
     ...fullState,
     players,
+    powerReveal,
     // Replace deck array with count only — never expose deck order
     deck: undefined,
     deckCount: fullState.deck?.length ?? 0,
