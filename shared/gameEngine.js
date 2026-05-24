@@ -23,9 +23,13 @@ function setCard(players, playerId, pos, card) {
 }
 
 function handValue(player) {
-  const grid  = Object.values(player.cards).filter(Boolean).reduce((s, c) => s + c.value, 0);
-  const extra = (player.extraCards ?? []).reduce((s, c) => s + c.value, 0);
-  return grid + extra;
+  // All cards are stored in player.cards (base positions + penalty positions P1/P2/...)
+  return Object.values(player.cards).filter(Boolean).reduce((s, c) => s + c.value, 0);
+}
+
+// Returns all active position keys for a player (base + penalty overflow).
+export function getPlayerPositions(player) {
+  return Object.keys(player.cards).filter(k => player.cards[k] !== null);
 }
 
 function reshuffleIfEmpty(state) {
@@ -42,15 +46,17 @@ function drawPenaltyCard(state, playerId) {
   const newDeck = [...s.deck];
   const card = newDeck.pop();
   const player = s.players.find(p => p.id === playerId);
-  const emptyPos = POSITIONS.find(pos => player.cards[pos] === null);
-  if (emptyPos) {
-    return { ...s, deck: newDeck, players: setCard(s.players, playerId, emptyPos, card) };
+
+  // First try to fill an empty base slot
+  const emptyBase = POSITIONS.find(pos => player.cards[pos] === null);
+  if (emptyBase) {
+    return { ...s, deck: newDeck, players: setCard(s.players, playerId, emptyBase, card) };
   }
-  // Grid full — overflow
-  const newPlayers = s.players.map(p =>
-    p.id === playerId ? { ...p, extraCards: [...(p.extraCards ?? []), card] } : p
-  );
-  return { ...s, deck: newDeck, players: newPlayers };
+
+  // Grid full — add as penalty overflow with key P1, P2, ...
+  const penaltyCount = Object.keys(player.cards).filter(k => k.startsWith('P')).length;
+  const penaltyPos = `P${penaltyCount + 1}`;
+  return { ...s, deck: newDeck, players: setCard(s.players, playerId, penaltyPos, card) };
 }
 
 // ─── init ─────────────────────────────────────────────────────────────────────
@@ -62,7 +68,6 @@ export function createInitialState(playerNames) {
     id: `p${i}`,
     name,
     cards: { TL: null, TR: null, BL: null, BR: null },
-    extraCards: [],
     ready: false,
   }));
 
@@ -225,10 +230,10 @@ export function actionSelfElim(state, position) {
       lastMove: `${player.name} tried to eliminate ${position} (${ownCard.rank}) but drew ${drawn.rank} — mismatch, card added to hand`,
     }, `${player.name} self-elim FAILED (own: ${ownCard.rank} vs drawn: ${drawn.rank}) — drawn card to hand`);
   }
-  // Grid full → extraCards
-  const newPlayers = state.players.map(p =>
-    p.id === player.id ? { ...p, extraCards: [...(p.extraCards ?? []), drawn] } : p
-  );
+  // Grid full — assign penalty overflow position P1, P2, ...
+  const penaltyCount = Object.keys(player.cards).filter(k => k.startsWith('P')).length;
+  const penaltyPos = `P${penaltyCount + 1}`;
+  const newPlayers = setCard(state.players, player.id, penaltyPos, drawn);
   return addLog({
     ...state,
     players: newPlayers,
@@ -479,7 +484,6 @@ export function startNewRound(state) {
   const players = state.players.map(p => ({
     ...p,
     cards: { TL: null, TR: null, BL: null, BR: null },
-    extraCards: [],
     ready: false,
   }));
   for (const player of players) {

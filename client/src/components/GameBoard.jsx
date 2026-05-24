@@ -41,29 +41,36 @@ export default function GameBoard({
   const isMyTurn = myPlayerId === null || activePlayer.id === myPlayerId;
   const isMineWinner = myPlayerId === null || mineWinner === myPlayerId;
 
+  // All position keys for a player (base grid + penalty overflow P1/P2/...)
+  function allPositions(player) {
+    return Object.keys(player.cards);
+  }
+
   // Determine which cards are clickable for each player
   function getClickablePositions(player) {
+    const all = allPositions(player);
     const nonNull = pos => player.cards[pos] !== null && player.cards[pos]?.hidden !== true;
+    const exists  = pos => player.cards[pos] !== null;
 
     if (phase === PHASES.ACTION && uiMode === 'swap' && player.id === activePlayer.id && isMyTurn) {
-      return POSITIONS.filter(nonNull);
+      return all.filter(nonNull);
     }
     if (phase === PHASES.ACTION && uiMode === 'self_elim' && player.id === activePlayer.id && isMyTurn) {
-      return POSITIONS.filter(nonNull);
+      return all.filter(nonNull);
     }
     if (phase === PHASES.POWER_SELECT && powerPending && isMyTurn) {
       const type = powerPending.type;
-      if (type === POWER_TYPES.SELF_VIEW) return POSITIONS.filter(nonNull);
-      if (type === POWER_TYPES.OPPONENT_VIEW && player.id !== activePlayer.id) return POSITIONS.filter(pos => player.cards[pos] !== null);
-      if (type === POWER_TYPES.SWAP) return POSITIONS.filter(pos => player.cards[pos] !== null);
+      if (type === POWER_TYPES.SELF_VIEW) return all.filter(nonNull);
+      if (type === POWER_TYPES.OPPONENT_VIEW && player.id !== activePlayer.id) return allPositions(player).filter(exists);
+      if (type === POWER_TYPES.SWAP) return allPositions(player).filter(exists);
     }
     if (phase === PHASES.POWER_SWAP_SECOND && swapFirst && isMyTurn) {
-      return POSITIONS.filter(pos => player.cards[pos] !== null);
+      return allPositions(player).filter(exists);
     }
     if (phase === PHASES.MINE_ACTION && isMineWinner) {
-      if (uiMode === 'mine_exchange' && player.id === mineWinner) return POSITIONS.filter(nonNull);
-      if (uiMode === 'mine_self_elim' && player.id === mineWinner) return POSITIONS.filter(nonNull);
-      if (uiMode === 'mine_opp_elim' && player.id !== mineWinner) return POSITIONS.filter(pos => player.cards[pos] !== null);
+      if (uiMode === 'mine_exchange' && player.id === mineWinner) return all.filter(nonNull);
+      if (uiMode === 'mine_self_elim' && player.id === mineWinner) return all.filter(nonNull);
+      if (uiMode === 'mine_opp_elim' && player.id !== mineWinner) return allPositions(player).filter(exists);
     }
     return [];
   }

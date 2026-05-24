@@ -32,12 +32,7 @@ export function sanitizeForPlayer(fullState, myPlayerId) {
       }
     }
 
-    const extraCards = (player.extraCards ?? []).map(card => {
-      if (isMine) return card;
-      return HIDDEN;
-    });
-
-    return { ...player, cards, extraCards };
+    return { ...player, cards };
   });
 
   // Only the viewer sees the powerReveal card — everyone else gets null
