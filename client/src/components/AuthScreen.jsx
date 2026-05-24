@@ -16,7 +16,11 @@ export default function AuthScreen({ onAuth, onOffline }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    const text = await res.text();
+    console.log('[auth] status:', res.status, 'body:', text);
+    let data;
+    try { data = JSON.parse(text); }
+    catch { throw new Error(`Server returned: ${res.status} — ${text.slice(0, 120) || '(empty)'}`); }
     if (!res.ok) throw new Error(data.error ?? 'Request failed');
     return data;
   }

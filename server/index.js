@@ -258,9 +258,18 @@ io.on('connection', (socket) => {
 
   socket.on(EVENTS.PLAYER_READY, ({ ready }) => {
     if (rateLimited(socket)) return;
-    rooms.setReady(socket.id, ready !== false);
     const room = rooms.getRoomBySocket(socket.id);
     if (!room) return;
+
+    // During INITIAL_REVEAL the engine tracks readiness, not the lobby
+    const state = getState(room.code);
+    if (state?.phase === PHASES.INITIAL_REVEAL) {
+      applyAndBroadcast(room.code, (s) => playerReady(s, socket.playerId));
+      return;
+    }
+
+    // Lobby ready toggle
+    rooms.setReady(socket.id, ready !== false);
     io.to(room.code).emit(EVENTS.PLAYER_LIST, rooms.playerList(room.code));
   });
 
