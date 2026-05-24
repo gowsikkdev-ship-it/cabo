@@ -7,6 +7,7 @@ import PowerPanel from './PowerPanel.jsx';
 import MinePhasePanel from './MinePhasePanel.jsx';
 import MineActionPanel from './MineActionPanel.jsx';
 import MineCountdown from './MineCountdown.jsx';
+import FlyingCard from './FlyingCard.jsx';
 
 export default function GameBoard({
   gameState,
@@ -29,6 +30,7 @@ export default function GameBoard({
   onBeginMineOppElim,
   onResolveCabo,
   onCancelUiMode,
+  onEndGame,
 }) {
   const { phase, players, currentTurnIndex, discardPile, drawnCard, mineWinner, swapFirst, powerPending } = gameState;
   // deck may be an array (offline) or absent (server replaces with deckCount)
@@ -95,13 +97,24 @@ export default function GameBoard({
   const lastMove = gameState.lastMove ?? null;
 
   return (
-    <div className="game-board">
+    <div className="game-board" style={{ position: 'relative' }}>
+      <FlyingCard lastAction={gameState.lastAction} />
+
       {/* Top bar */}
       <div className="board-top">
         <span className="phase-banner">{phaseBannerText}</span>
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
           Round {gameState.roundNumber}
         </span>
+        {onEndGame && (
+          <button
+            className="btn btn-outline"
+            style={{ fontSize: '0.7rem', padding: '0.25rem 0.6rem', marginLeft: '0.5rem', opacity: 0.7 }}
+            onClick={onEndGame}
+          >
+            End Game
+          </button>
+        )}
       </div>
 
       {/* Last action flash */}
@@ -146,16 +159,18 @@ export default function GameBoard({
         <div className="center-zone">
           <div>
             <p className="pile-label">Deck</p>
-            <div className="card face-down" style={{ cursor: 'default' }} />
+            <div className="deck-stack">
+              <div className="card face-down" data-ref="deck" style={{ cursor: 'default' }} />
+            </div>
             <p className="deck-count">{deckCount} cards</p>
           </div>
 
           <div>
             <p className="pile-label">Discard</p>
             {topDiscard ? (
-              <Card card={topDiscard} faceUp />
+              <Card card={topDiscard} faceUp dataRef="discard" />
             ) : (
-              <div className="card empty" />
+              <div className="card empty" data-ref="discard" />
             )}
           </div>
 

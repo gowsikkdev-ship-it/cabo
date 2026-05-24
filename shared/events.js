@@ -27,6 +27,7 @@ export const EVENTS = {
 
   RESOLVE_CABO:     'resolve_cabo',
   START_NEW_ROUND:  'start_new_round',
+  FORCE_END_GAME:   'force_end_game',
 
   // Latency probe (Phase 7)
   CLIENT_PONG:      'client_pong',

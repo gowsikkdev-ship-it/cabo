@@ -10,6 +10,7 @@ export default function Card({
   highlighted = false,
   empty = false,
   large = false,
+  dataRef,
   onClick,
 }) {
   // Server-sanitized hidden card — treat as face-down
@@ -20,6 +21,7 @@ export default function Card({
     return (
       <div
         className={`card empty${large ? ' card-lg' : ''}`}
+        data-ref={dataRef}
         title={position ? `Slot ${position} (empty)` : 'Empty slot'}
       >
         {position && <span className="card-pos">{position}</span>}
@@ -38,7 +40,7 @@ export default function Card({
 
   if (!faceUp) {
     return (
-      <div className={classes} onClick={clickable ? onClick : undefined} title={position}>
+      <div className={classes} data-ref={dataRef} onClick={clickable ? onClick : undefined} title={position}>
         {position && <span className="card-pos">{position}</span>}
       </div>
     );
@@ -48,7 +50,7 @@ export default function Card({
   const symbol = card ? SUIT_SYMBOLS[card.suit] : '';
 
   return (
-    <div className={classes} onClick={clickable ? onClick : undefined}>
+    <div className={classes} data-ref={dataRef} onClick={clickable ? onClick : undefined}>
       {position && <span className="card-pos">{position}</span>}
       <span className="card-rank" style={{ color }}>{card?.rank ?? '?'}</span>
       <span className="card-suit" style={{ color }}>{symbol}</span>

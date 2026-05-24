@@ -50,6 +50,7 @@ function gameReducer(state, action) {
     case 'MINE_OPP_ELIM':        return engine.mineOppElim(state, action.targetPlayerId, action.position);
     case 'RESOLVE_CABO':         return engine.resolveCabo(state);
     case 'START_NEW_ROUND':      return engine.startNewRound(state);
+    case 'FORCE_END':            return engine.forceEndGame(state);
     default:                     return state;
   }
 }
@@ -139,6 +140,7 @@ function OfflineGame({ onExit }) {
       onBeginMineOppElim={() => setUiMode('mine_opp_elim')}
       onResolveCabo={() => dispatch({ type: 'RESOLVE_CABO' })}
       onCancelUiMode={resetUiMode}
+      onEndGame={() => dispatch({ type: 'FORCE_END' })}
     />
   );
 }
@@ -297,6 +299,7 @@ function OnlineGame({ token, myPlayerId, onExit }) {
         onBeginMineOppElim={() => setUiMode('mine_opp_elim')}
         onResolveCabo={() => send(EVENTS.RESOLVE_CABO)}
         onCancelUiMode={resetUiMode}
+        onEndGame={() => send(EVENTS.FORCE_END_GAME)}
       />
     </>
   );

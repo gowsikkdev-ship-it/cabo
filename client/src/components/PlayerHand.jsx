@@ -25,14 +25,16 @@ export default function PlayerHand({
       selectedPositions.includes(pos) ||
       (swapFirst?.playerId === player.id && swapFirst?.position === pos);
     const isHighlighted = highlightedPositions.includes(pos);
+    const slotRef = `slot-${player.id}-${pos}`;
 
-    if (card === null) return <Card key={pos} position={pos} empty />;
+    if (card === null) return <Card key={pos} position={pos} dataRef={slotRef} empty />;
 
     return (
       <Card
-        key={pos}
+        key={`${pos}-${card.rank}-${card.suit}`}
         card={card}
         position={pos}
+        dataRef={slotRef}
         faceUp={revealAll}
         clickable={isClickable}
         selected={isSelected}
@@ -43,7 +45,7 @@ export default function PlayerHand({
   }
 
   return (
-    <div className="player-area">
+    <div className="player-area" data-ref={`player-${player.id}`}>
       <div className="flex-row" style={{ marginBottom: '0.5rem', gap: '0.4rem' }}>
         <span className={`player-name ${isActive ? 'active' : ''}`}>{player.name}</span>
         {isActive      && <span className="tag active">Your Turn</span>}

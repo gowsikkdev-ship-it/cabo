@@ -45,6 +45,7 @@ import {
   mineOppElim,
   resolveCabo,
   startNewRound,
+  forceEndGame,
 } from '../shared/gameEngine.js';
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
@@ -566,6 +567,26 @@ io.on('connection', (socket) => {
     if (!state) return;
     if (state.phase !== PHASES.ROUND_OVER) return;
     applyAndBroadcast(room.code, (s) => startNewRound(s));
+  });
+
+  socket.on(EVENTS.FORCE_END_GAME, () => {
+    if (rateLimited(socket)) return;
+    const room = rooms.getRoomBySocket(socket.id);
+    if (!room) return;
+    // Only the host (first player) may force-end
+    if (room.hostId && room.hostId !== socket.playerId) {
+      return emitError(socket, 'Only the host can end the game early');
+    }
+    const state = getState(room.code);
+    if (!state) return;
+    if (state.phase === PHASES.GAME_OVER) return;
+    const next = applyAndBroadcast(room.code, (s) => forceEndGame(s));
+    if (next?.phase === PHASES.GAME_OVER) {
+      io.to(room.code).emit(EVENTS.GAME_END, {
+        scores: next.cumulativeScores,
+        players: next.players.map(p => ({ id: p.id, name: p.name })),
+      });
+    }
   });
 
   // ── Disconnect ───────────────────────────────────────────────────────────────

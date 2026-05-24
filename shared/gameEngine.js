@@ -1,6 +1,13 @@
 import { createDeck, shuffleDeck } from './cards.js';
 import { POSITIONS, PHASES, POWER_TYPES, FAILED_CABO_PENALTY, MAX_SCORE } from './constants.js';
 
+// ─── animation helper ─────────────────────────────────────────────────────────
+// lastAction is consumed by the client FlyingCard overlay.
+// Each move: { fromRef, toRef, card, faceUp }
+// Refs: 'deck' | 'discard' | 'player-{id}' | 'slot-{id}-{pos}'
+let _actionId = 0;
+function action(moves) { return { id: ++_actionId, moves }; }
+
 // ─── private helpers ─────────────────────────────────────────────────────────
 
 function addLog(state, msg) {
@@ -102,8 +109,8 @@ export function createInitialState(playerNames) {
     caboSuccess: null,
     cumulativeScores,
     roundNumber: 1,
-    // lastMove: human-readable summary of the last card movement for the UI flash banner
     lastMove: null,
+    lastAction: null,
     log: ['Game created'],
   };
 }
@@ -139,12 +146,15 @@ export function callCabo(state) {
 export function drawCard(state) {
   let s = reshuffleIfEmpty(state);
   if (s.deck.length === 0) {
-    return addLog({ ...s, phase: PHASES.MINE, currentTurnIndex: nextTurnIndex(s) }, 'Deck empty — turn skipped');
+    return addLog({ ...s, phase: PHASES.MINE, currentTurnIndex: nextTurnIndex(s), lastAction: null }, 'Deck empty — turn skipped');
   }
   const newDeck = [...s.deck];
   const card = newDeck.pop();
   const player = s.players[s.currentTurnIndex];
-  return addLog({ ...s, deck: newDeck, drawnCard: card, phase: PHASES.ACTION }, `${player.name} draws a card`);
+  return addLog({
+    ...s, deck: newDeck, drawnCard: card, phase: PHASES.ACTION,
+    lastAction: action([{ fromRef: 'deck', toRef: `player-${player.id}`, card: null, faceUp: false }]),
+  }, `${player.name} draws a card`);
 }
 
 // ─── action phase ─────────────────────────────────────────────────────────────
@@ -163,6 +173,9 @@ export function actionSwap(state, position) {
     drawnCard: null,
     phase: PHASES.MINE,
     lastMove: `${player.name} swapped their ${position} card (discarded ${replaced.rank})`,
+    lastAction: action([
+      { fromRef: `slot-${player.id}-${position}`, toRef: 'discard', card: replaced, faceUp: true },
+    ]),
   }, `${player.name} swaps ${position}, discards ${replaced.rank}`);
 }
 
@@ -180,6 +193,7 @@ export function actionUsePower(state) {
     powerPending: { type: card.power },
     swapFirst: null,
     lastMove: `${player.name} uses ${card.power} power (${card.rank})`,
+    lastAction: action([{ fromRef: `player-${player.id}`, toRef: 'discard', card, faceUp: true }]),
   }, `${player.name} uses ${card.power} power (${card.rank})`);
 }
 
@@ -193,6 +207,7 @@ export function actionDiscard(state) {
     drawnCard: null,
     phase: PHASES.MINE,
     lastMove: `${player.name} discarded ${card.rank} (value ${card.value})`,
+    lastAction: action([{ fromRef: `player-${player.id}`, toRef: 'discard', card, faceUp: true }]),
   }, `${player.name} discards ${card.rank}`);
 }
 
@@ -307,6 +322,10 @@ export function powerSwapSecond(state, targetPlayerId, position) {
     powerPending: null,
     swapFirst: null,
     lastMove: `${current.name} swapped cards via power (${p1.name} ${swapFirst.position} ↔ ${p2.name} ${position})`,
+    lastAction: action([
+      { fromRef: `slot-${swapFirst.playerId}-${swapFirst.position}`, toRef: `slot-${targetPlayerId}-${position}`, card: null, faceUp: false },
+      { fromRef: `slot-${targetPlayerId}-${position}`, toRef: `slot-${swapFirst.playerId}-${swapFirst.position}`, card: null, faceUp: false },
+    ]),
   }, `${current.name} swaps cards via power`);
 }
 
@@ -334,10 +353,11 @@ export function mineNoCall(state) {
     currentTurnIndex: nextTurnIndex(state),
     mineChainMode: null,
     mineWinner: null,
-    mineLastActedBy: null,  // chain ends — anyone can Mine next time
+    mineLastActedBy: null,
     mineCalledBy: [],
     powerReveal: null,
     lastMove: null,
+    lastAction: null,
   }, 'No Mine — turn ends');
 }
 
@@ -362,6 +382,10 @@ export function mineExchange(state, position) {
     mineLastActedBy: winner.id,
     phase: PHASES.MINE,
     lastMove: `${winner.name} exchanged their ${position} card (${ownCard.rank}) with discard (${discard.rank})`,
+    lastAction: action([
+      { fromRef: 'discard', toRef: `slot-${winner.id}-${position}`, card: discard, faceUp: false },
+      { fromRef: `slot-${winner.id}-${position}`, toRef: 'discard', card: ownCard, faceUp: true },
+    ]),
   }, `${winner.name} exchanges with discard — new Mine phase`);
 }
 
@@ -508,9 +532,22 @@ export function startNewRound(state) {
     roundScores: null,
     caboSuccess: null,
     lastMove: null,
+    lastAction: null,
     roundNumber: state.roundNumber + 1,
     log: [`Round ${state.roundNumber + 1} begins`],
   };
+}
+
+export function forceEndGame(state) {
+  return addLog({
+    ...state,
+    phase: PHASES.GAME_OVER,
+    handValues: null,
+    roundScores: null,
+    caboSuccess: null,
+    lastMove: 'Game ended early',
+    lastAction: null,
+  }, 'Game ended by player request');
 }
 
 // ─── selectors ────────────────────────────────────────────────────────────────
