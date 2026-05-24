@@ -39,7 +39,7 @@ function gameReducer(state, action) {
     case 'ACTION_SWAP':          return engine.actionSwap(state, action.position);
     case 'ACTION_USE_POWER':     return engine.actionUsePower(state);
     case 'ACTION_DISCARD':       return engine.actionDiscard(state);
-    case 'ACTION_SELF_ELIM':     return engine.actionSelfElim(state, action.position);
+    case 'ACTION_ELIMINATE':     return engine.actionEliminate(state, action.targetPlayerId, action.position);
     case 'POWER_SELECT':         return engine.powerSelect(state, action.targetPlayerId, action.position);
     case 'POWER_CONFIRM_REVEAL': return engine.powerConfirmReveal(state);
     case 'POWER_SWAP_SECOND':    return engine.powerSwapSecond(state, action.targetPlayerId, action.position);
@@ -99,9 +99,7 @@ function OfflineGame({ onExit }) {
       return;
     }
     if (uiMode === 'self_elim') {
-      const active = gs.players[gs.currentTurnIndex];
-      if (playerId !== active.id) return;
-      dispatch({ type: 'ACTION_SELF_ELIM', position });
+      dispatch({ type: 'ACTION_ELIMINATE', targetPlayerId: playerId, position });
       resetUiMode();
       return;
     }
@@ -204,8 +202,7 @@ function OnlineGame({ token, myPlayerId, onExit }) {
       return;
     }
     if (uiMode === 'self_elim') {
-      if (playerId !== myPlayerId) return;
-      send(EVENTS.ACTION_SELF_ELIM, { position });
+      send(EVENTS.ACTION_ELIMINATE, { targetPlayerId: playerId, position });
       resetUiMode();
       return;
     }

@@ -34,7 +34,7 @@ import {
   actionSwap,
   actionUsePower,
   actionDiscard,
-  actionSelfElim,
+  actionEliminate,
   powerSelect,
   powerConfirmReveal,
   powerSwapSecond,
@@ -190,29 +190,44 @@ function resolveMineWindow(code, reactions) {
 
   io.to(code).emit(EVENTS.MINE_WINDOW_CLOSE, {});
 
-  if (reactions.length === 0) {
-    // Nobody called Mine — advance turn
+  const advanceTurn = () => {
     const next = applyAndBroadcast(code, (s) => mineNoCall(s));
     if (next?.phase === PHASES.CABO_RESOLUTION) {
-      // Cabo was pending
-      setTimeout(() => {
-        applyAndBroadcast(code, (s) => resolveCabo(s));
-      }, 100);
+      setTimeout(() => applyAndBroadcast(code, (s) => resolveCabo(s)), 100);
     }
+  };
+
+  if (reactions.length === 0) {
+    advanceTurn();
     return;
   }
 
-  // First caller (lowest adjustedAt) wins
-  const winner = reactions[0];
-  let state = getState(code);
-  if (!state) return;
+  // Try reactions in sorted order; skip any the engine blocks (mineLastActedBy check)
+  let baseState = getState(code);
+  if (!baseState) return;
 
-  state = callMine(state, winner.playerId);
-  setState(code, state);
+  let acceptedWinnerId = null;
+  let finalState = baseState;
+  for (const reaction of reactions) {
+    const attempted = callMine(baseState, reaction.playerId);
+    if (attempted !== baseState) {
+      finalState = attempted;
+      acceptedWinnerId = reaction.playerId;
+      break;
+    }
+  }
+
+  if (!acceptedWinnerId) {
+    // All reactions were blocked (e.g. only the cooldown player reacted) — treat as no-call
+    advanceTurn();
+    return;
+  }
+
+  setState(code, finalState);
   broadcastState(code);
 
   io.to(code).emit(EVENTS.MINE_RESULT, {
-    winnerId: winner.playerId,
+    winnerId: acceptedWinnerId,
     reactions: reactions.map(r => ({ playerId: r.playerId, adjustedAt: r.adjustedAt })),
   });
 }
@@ -357,16 +372,17 @@ io.on('connection', (socket) => {
     if (next?.phase === PHASES.MINE) openMineWindow(room.code);
   });
 
-  socket.on(EVENTS.ACTION_SELF_ELIM, ({ position } = {}) => {
+  socket.on(EVENTS.ACTION_ELIMINATE, ({ targetPlayerId, position } = {}) => {
     if (rateLimited(socket)) return;
     const room = rooms.getRoomBySocket(socket.id);
     if (!room) return;
     const state = getState(room.code);
     if (!state) return;
     if (!assertTurn(socket, state, PHASES.ACTION)) return;
-    if (typeof position !== 'string') return emitError(socket, 'position required');
+    if (typeof targetPlayerId !== 'string' || typeof position !== 'string')
+      return emitError(socket, 'targetPlayerId and position required');
 
-    const next = applyAndBroadcast(room.code, (s) => actionSelfElim(s, position));
+    const next = applyAndBroadcast(room.code, (s) => actionEliminate(s, targetPlayerId, position));
 
     if (next?.phase === PHASES.MINE) openMineWindow(room.code);
   });
@@ -426,10 +442,10 @@ io.on('connection', (socket) => {
     const state = getState(room.code);
     if (!state) return;
     if (!assertNotTurn(socket, state)) return;
-
+    if (state.mineLastActedBy === socket.playerId)
+      return emitError(socket, 'Cannot Mine immediately after your own exchange/elimination');
     if (!mineWindow.isOpen(room.code)) return emitError(socket, 'Mine window is closed');
 
-    // Record reaction — winner resolved when window closes
     mineWindow.react(room.code, socket.id, socket.playerId);
   });
 

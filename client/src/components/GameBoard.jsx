@@ -55,8 +55,9 @@ export default function GameBoard({
     if (phase === PHASES.ACTION && uiMode === 'swap' && player.id === activePlayer.id && isMyTurn) {
       return all.filter(nonNull);
     }
-    if (phase === PHASES.ACTION && uiMode === 'self_elim' && player.id === activePlayer.id && isMyTurn) {
-      return all.filter(nonNull);
+    if (phase === PHASES.ACTION && uiMode === 'self_elim' && isMyTurn) {
+      // Can target own OR any opponent's non-null card
+      return all.filter(pos => player.cards[pos] !== null);
     }
     if (phase === PHASES.POWER_SELECT && powerPending && isMyTurn) {
       const type = powerPending.type;

@@ -196,51 +196,47 @@ export function actionDiscard(state) {
   }, `${player.name} discards ${card.rank}`);
 }
 
-// Option D: self-eliminate drawn card against own face-down card
-// Success: both cards removed. Failure: drawn card added to hand as penalty.
-export function actionSelfElim(state, position) {
-  const player = state.players[state.currentTurnIndex];
-  const ownCard = player.cards[position];
+// Option D: eliminate using drawn card against any player's face-down card (own or opponent).
+// Success: target card removed, drawn card discarded. Failure: drawn card goes to active player's hand.
+export function actionEliminate(state, targetPlayerId, position) {
+  const player = state.players[state.currentTurnIndex]; // active player doing the action
+  const target = state.players.find(p => p.id === targetPlayerId);
+  const targetCard = target?.cards[position];
   const drawn = state.drawnCard;
-  if (!ownCard || !drawn) return state;
+  if (!targetCard || !drawn || targetCard.hidden) return state;
 
-  const success = ownCard.value === drawn.value;
+  const isSelf = targetPlayerId === player.id;
+  const success = targetCard.value === drawn.value;
 
   if (success) {
-    const newPlayers = setCard(state.players, player.id, position, null);
+    const newPlayers = setCard(state.players, targetPlayerId, position, null);
+    const msg = isSelf
+      ? `${player.name} eliminated their own ${position} card (${targetCard.rank}) using drawn ${drawn.rank}! SUCCESS`
+      : `${player.name} eliminated ${target.name}'s ${position} card (${targetCard.rank})! SUCCESS`;
     return addLog({
       ...state,
       players: newPlayers,
       discardPile: [...state.discardPile, drawn],
       drawnCard: null,
       phase: PHASES.MINE,
-      lastMove: `${player.name} eliminated their ${position} card (${ownCard.rank}) using drawn ${drawn.rank}! SUCCESS`,
-    }, `${player.name} self-eliminates ${position} (${ownCard.rank}==${drawn.rank})! SUCCESS`);
+      lastMove: msg,
+    }, msg);
   }
 
-  // Failure: drawn card goes to hand as penalty
+  // Failure: drawn card goes to active player's hand as penalty
+  const failMsg = isSelf
+    ? `${player.name} eliminate FAILED (${targetCard.rank} vs drawn ${drawn.rank}) — drawn card to hand`
+    : `${player.name} tried to eliminate ${target.name}'s ${position} — FAILED, drawn card to hand`;
+
   const emptyPos = POSITIONS.find(pos => player.cards[pos] === null);
   if (emptyPos) {
     const newPlayers = setCard(state.players, player.id, emptyPos, drawn);
-    return addLog({
-      ...state,
-      players: newPlayers,
-      drawnCard: null,
-      phase: PHASES.MINE,
-      lastMove: `${player.name} tried to eliminate ${position} (${ownCard.rank}) but drew ${drawn.rank} — mismatch, card added to hand`,
-    }, `${player.name} self-elim FAILED (own: ${ownCard.rank} vs drawn: ${drawn.rank}) — drawn card to hand`);
+    return addLog({ ...state, players: newPlayers, drawnCard: null, phase: PHASES.MINE, lastMove: failMsg }, failMsg);
   }
-  // Grid full — assign penalty overflow position P1, P2, ...
   const penaltyCount = Object.keys(player.cards).filter(k => k.startsWith('P')).length;
   const penaltyPos = `P${penaltyCount + 1}`;
   const newPlayers = setCard(state.players, player.id, penaltyPos, drawn);
-  return addLog({
-    ...state,
-    players: newPlayers,
-    drawnCard: null,
-    phase: PHASES.MINE,
-    lastMove: `${player.name} self-elim FAILED — drawn card added to hand (overflow)`,
-  }, `${player.name} self-elim FAILED — drawn card to hand (overflow)`);
+  return addLog({ ...state, players: newPlayers, drawnCard: null, phase: PHASES.MINE, lastMove: failMsg }, failMsg);
 }
 
 // ─── power: select target card ────────────────────────────────────────────────

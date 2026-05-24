@@ -13,7 +13,7 @@ export const EVENTS = {
   ACTION_SWAP:      'action_swap',
   ACTION_USE_POWER: 'action_use_power',
   ACTION_DISCARD:   'action_discard',
-  ACTION_SELF_ELIM: 'action_self_elim',
+  ACTION_ELIMINATE: 'action_eliminate',
   POWER_SELECT:         'power_select',
   POWER_SWAP_SECOND:    'power_swap_second',
   POWER_CONFIRM_REVEAL: 'power_confirm_reveal',

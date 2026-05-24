@@ -24,11 +24,24 @@ export default function ActionPanel({ gameState, uiMode, onCallCabo, onDrawCard,
 
     if (uiMode === 'swap') {
       return (
-        <div className="panel" style={{ maxWidth: '400px', width: '100%' }}>
-          <h3 style={{ marginBottom: '0.5rem' }}>Swap — Select Your Card</h3>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-            Click one of <strong>{activePlayer.name}</strong>'s face-down cards to replace it with the drawn card.
-          </p>
+        <div className="panel" style={{ maxWidth: '460px', width: '100%' }}>
+          <h3 style={{ marginBottom: '0.75rem' }}>Swap — Click Your Card to Replace</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Drawn card (goes in)</p>
+              <Card card={drawnCard} faceUp large />
+            </div>
+            <div style={{ fontSize: '1.8rem', color: 'var(--gold-light)' }}>→</div>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Your card (click it above)</p>
+              <div style={{ width: '56px', height: '80px', border: '2px dashed var(--gold-light)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold-light)', fontSize: '1.4rem' }}>?</div>
+            </div>
+            <div style={{ fontSize: '1.8rem', color: 'var(--text-muted)' }}>→</div>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Your old card (discarded)</p>
+              <div style={{ width: '56px', height: '80px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.7rem', textAlign: 'center', padding: '4px' }}>goes to discard pile</div>
+            </div>
+          </div>
           <button className="btn btn-outline" onClick={onCancelUiMode}>Cancel</button>
         </div>
       );
@@ -36,11 +49,19 @@ export default function ActionPanel({ gameState, uiMode, onCallCabo, onDrawCard,
 
     if (uiMode === 'self_elim') {
       return (
-        <div className="panel" style={{ maxWidth: '400px', width: '100%' }}>
-          <h3 style={{ marginBottom: '0.5rem' }}>Eliminate — Select Your Card</h3>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-            Click one of your face-down cards. If its value matches the drawn card ({drawnCard.rank} = {drawnCard.value} pts), both are removed. Otherwise the drawn card is added to your hand.
-          </p>
+        <div className="panel" style={{ maxWidth: '460px', width: '100%' }}>
+          <h3 style={{ marginBottom: '0.75rem' }}>Eliminate — Click Any Card to Match</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Drawn card (value {drawnCard.value})</p>
+              <Card card={drawnCard} faceUp large />
+            </div>
+            <div style={{ flex: 1, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              <p>Click <strong style={{ color: 'var(--gold-light)' }}>any face-down card</strong> — own or opponent's.</p>
+              <p style={{ marginTop: '0.4rem' }}>✓ Match → that card removed, drawn card discarded</p>
+              <p>✗ No match → drawn card added to your hand</p>
+            </div>
+          </div>
           <button className="btn btn-outline" onClick={onCancelUiMode}>Cancel</button>
         </div>
       );
