@@ -36,8 +36,22 @@ export default function PowerPanel({ gameState, onConfirmReveal }) {
     );
   }
 
+  if (phase === 'POWER_REVEAL' && powerReveal && !powerReveal.card) {
+    // Observer: knows who is viewing which card, but not its value
+    const targetPlayer = players.find(p => p.id === powerReveal.targetPlayerId);
+    const isSelf = targetPlayer?.id === activePlayer.id;
+    return (
+      <div className="panel" style={{ maxWidth: '400px', width: '100%', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <strong style={{ color: 'var(--gold-light)' }}>{activePlayer.name}</strong> is viewing{' '}
+        {isSelf
+          ? <>their own <strong style={{ color: 'var(--gold-light)' }}>{powerReveal.position}</strong> card…</>
+          : <><strong style={{ color: 'var(--gold-light)' }}>{targetPlayer?.name}</strong>'s <strong style={{ color: 'var(--gold-light)' }}>{powerReveal.position}</strong> card…</>
+        }
+      </div>
+    );
+  }
+
   if (phase === 'POWER_REVEAL' && !powerReveal) {
-    // Non-viewer sees a waiting message while the active player views privately
     return (
       <div className="panel" style={{ maxWidth: '400px', width: '100%', textAlign: 'center', color: 'var(--text-muted)' }}>
         <strong style={{ color: 'var(--gold-light)' }}>{activePlayer.name}</strong> is privately viewing a card…

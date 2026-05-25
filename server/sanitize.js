@@ -35,9 +35,11 @@ export function sanitizeForPlayer(fullState, myPlayerId) {
     return { ...player, cards };
   });
 
-  // Only the viewer sees the powerReveal card — everyone else gets null
-  const powerReveal = fullState.powerReveal?.viewerId === myPlayerId
-    ? fullState.powerReveal
+  // Viewer gets full card; others get location only (no card value)
+  const powerReveal = fullState.powerReveal
+    ? fullState.powerReveal.viewerId === myPlayerId
+      ? fullState.powerReveal
+      : { viewerId: fullState.powerReveal.viewerId, targetPlayerId: fullState.powerReveal.targetPlayerId, position: fullState.powerReveal.position, card: null }
     : null;
 
   // Only the active player can see the card they just drew
