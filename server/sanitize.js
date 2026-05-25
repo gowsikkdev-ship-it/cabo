@@ -40,10 +40,17 @@ export function sanitizeForPlayer(fullState, myPlayerId) {
     ? fullState.powerReveal
     : null;
 
+  // Only the active player can see the card they just drew
+  const activePlayer = fullState.players[fullState.currentTurnIndex];
+  const drawnCard = fullState.drawnCard && activePlayer?.id === myPlayerId
+    ? fullState.drawnCard
+    : fullState.drawnCard ? HIDDEN : null;
+
   return {
     ...fullState,
     players,
     powerReveal,
+    drawnCard,
     // Replace deck array with count only — never expose deck order
     deck: undefined,
     deckCount: fullState.deck?.length ?? 0,
