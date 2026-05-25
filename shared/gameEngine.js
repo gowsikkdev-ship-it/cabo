@@ -418,7 +418,7 @@ export function mineSelfElim(state, position) {
   return addLog({
     ...s,
     mineWinner: null,
-    mineChainMode: 'elimination',
+    mineChainMode: state.mineChainMode,
     mineLastActedBy: winner.id,
     phase: PHASES.MINE,
     lastMove: `${winner.name} self-elim FAILED (${ownCard.rank} vs discard ${discard.rank}) — penalty card drawn`,
@@ -453,7 +453,7 @@ export function mineOppElim(state, targetPlayerId, position) {
   return addLog({
     ...s,
     mineWinner: null,
-    mineChainMode: 'elimination',
+    mineChainMode: state.mineChainMode,
     mineLastActedBy: winner.id,
     phase: PHASES.MINE,
     lastMove: `${winner.name} tried to eliminate ${target.name}'s ${position} — FAILED, penalty drawn`,
