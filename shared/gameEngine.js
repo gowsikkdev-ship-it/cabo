@@ -47,23 +47,13 @@ function reshuffleIfEmpty(state) {
   return addLog({ ...state, deck: shuffleDeck(rest), discardPile: [top] }, 'Deck reshuffled from discard pile');
 }
 
-function drawPenaltyCard(state, playerId) {
+function drawPenaltyCard(state) {
   let s = reshuffleIfEmpty(state);
   if (s.deck.length === 0) return s;
   const newDeck = [...s.deck];
   const card = newDeck.pop();
-  const player = s.players.find(p => p.id === playerId);
-
-  // First try to fill an empty base slot
-  const emptyBase = POSITIONS.find(pos => player.cards[pos] === null);
-  if (emptyBase) {
-    return { ...s, deck: newDeck, players: setCard(s.players, playerId, emptyBase, card) };
-  }
-
-  // Grid full — add as penalty overflow with key P1, P2, ...
-  const penaltyCount = Object.keys(player.cards).filter(k => k.startsWith('P')).length;
-  const penaltyPos = `P${penaltyCount + 1}`;
-  return { ...s, deck: newDeck, players: setCard(s.players, playerId, penaltyPos, card) };
+  // Penalty card is discarded face-up — becomes the new Mine target
+  return { ...s, deck: newDeck, discardPile: [...s.discardPile, card] };
 }
 
 // ─── init ─────────────────────────────────────────────────────────────────────
@@ -414,15 +404,15 @@ export function mineSelfElim(state, position) {
     }, `${winner.name} self-eliminates ${ownCard.rank}! SUCCESS`);
   }
 
-  let s = drawPenaltyCard(state, winner.id);
+  let s = drawPenaltyCard(state);
   return addLog({
     ...s,
     mineWinner: null,
     mineChainMode: state.mineChainMode,
     mineLastActedBy: winner.id,
     phase: PHASES.MINE,
-    lastMove: `${winner.name} self-elim FAILED (${ownCard.rank} vs discard ${discard.rank}) — penalty card drawn`,
-  }, `${winner.name} self-elim FAILED (own: ${ownCard.rank} vs discard: ${discard.rank}) — penalty drawn`);
+    lastMove: `${winner.name} self-elim FAILED (${ownCard.rank} vs discard ${discard.rank}) — penalty card discarded`,
+  }, `${winner.name} self-elim FAILED — penalty card discarded, Mine continues`);
 }
 
 // Opponent Elimination: guess target player's card matches top discard
@@ -449,15 +439,15 @@ export function mineOppElim(state, targetPlayerId, position) {
     }, `${winner.name} eliminates ${target.name}'s ${position} (${targetCard.rank})! SUCCESS`);
   }
 
-  let s = drawPenaltyCard(state, winner.id);
+  let s = drawPenaltyCard(state);
   return addLog({
     ...s,
     mineWinner: null,
     mineChainMode: state.mineChainMode,
     mineLastActedBy: winner.id,
     phase: PHASES.MINE,
-    lastMove: `${winner.name} tried to eliminate ${target.name}'s ${position} — FAILED, penalty drawn`,
-  }, `${winner.name} opp-elim FAILED — penalty drawn`);
+    lastMove: `${winner.name} tried to eliminate ${target.name}'s ${position} — FAILED, penalty card discarded`,
+  }, `${winner.name} opp-elim FAILED — penalty card discarded, Mine continues`);
 }
 
 // ─── cabo resolution ──────────────────────────────────────────────────────────
