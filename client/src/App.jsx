@@ -28,6 +28,7 @@ import useGameSocket from './hooks/useGameSocket.js';
 // ── Offline reducer (Phase 4 hot-seat) ────────────────────────────────────────
 
 function gameReducer(state, action) {
+  if (action.type === 'RESET') return null;
   if (!state) {
     if (action.type === 'START_GAME') return engine.createInitialState(action.playerNames);
     return null;

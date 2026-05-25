@@ -17,8 +17,12 @@ export default function MinePhasePanel({ gameState, myPlayerId = null, mineWindo
   const { players, currentTurnIndex, discardPile, mineChainMode, mineLastActedBy = null } = gameState;
   const activePlayer = players[currentTurnIndex];
   const discard = discardPile.length > 0 ? discardPile[discardPile.length - 1] : null;
-  const nonActivePlayers = players.filter(p => p.id !== activePlayer.id);
-  const eligiblePlayers  = nonActivePlayers.filter(p => p.id !== mineLastActedBy);
+  // Active player is blocked in the initial window (they put the first discard there).
+  // Once the chain starts (mineChainMode set), the discard has changed so they're eligible too.
+  const candidatePlayers = mineChainMode
+    ? players
+    : players.filter(p => p.id !== activePlayer.id);
+  const eligiblePlayers  = candidatePlayers.filter(p => p.id !== mineLastActedBy);
   const cooldownPlayer   = nonActivePlayers.find(p => p.id === mineLastActedBy) ?? null;
 
   const isOnline    = myPlayerId !== null && mineWindow !== null;
@@ -45,12 +49,12 @@ export default function MinePhasePanel({ gameState, myPlayerId = null, mineWindo
           )}
           <p style={{ fontSize: '0.82rem' }}>
             {isOnline
-              ? (iAmActive
-                  ? 'Waiting for other players to react…'
-                  : iAmCooldown
-                    ? 'You just acted — wait for another player to Mine first.'
-                    : iAmEligible
-                      ? 'Call Mine! before the window closes!'
+              ? (iAmCooldown
+                  ? 'You just acted — wait for another player to Mine first.'
+                  : iAmEligible
+                    ? 'Call Mine! before the window closes!'
+                    : iAmActive
+                      ? 'Waiting for other players to react…'
                       : 'No eligible players.')
               : (eligiblePlayers.length > 0
                   ? 'Non-active players may call Mine! to react to this discard.'

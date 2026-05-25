@@ -334,9 +334,10 @@ export function powerSwapSecond(state, targetPlayerId, position) {
 
 export function callMine(state, playerId) {
   const current = state.players[state.currentTurnIndex];
-  if (playerId === current.id) return state; // active player cannot call Mine
-  // Player who last performed an exchange/elimination cannot call Mine again until
-  // at least one more exchange/elimination by a different player occurs.
+  // Active player can only call Mine in the initial window (they put the first discard there).
+  // Once someone else has acted and changed the discard, they become eligible too.
+  if (playerId === current.id && !state.mineChainMode) return state;
+  // Player who last acted cannot call Mine until someone else acts first.
   if (state.mineLastActedBy === playerId) return state;
   const caller = state.players.find(p => p.id === playerId);
   return addLog({

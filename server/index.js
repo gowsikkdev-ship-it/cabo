@@ -442,7 +442,9 @@ io.on('connection', (socket) => {
     if (!room) return;
     const state = getState(room.code);
     if (!state) return;
-    if (!assertNotTurn(socket, state)) return;
+    const activePlayer = state.players[state.currentTurnIndex];
+    if (activePlayer.id === socket.playerId && !state.mineChainMode)
+      return emitError(socket, 'Active player cannot call Mine on their own discard');
     if (state.mineLastActedBy === socket.playerId)
       return emitError(socket, 'Cannot Mine immediately after your own exchange/elimination');
     if (!mineWindow.isOpen(room.code)) return emitError(socket, 'Mine window is closed');
