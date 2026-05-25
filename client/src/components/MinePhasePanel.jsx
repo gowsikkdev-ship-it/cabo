@@ -23,7 +23,7 @@ export default function MinePhasePanel({ gameState, myPlayerId = null, mineWindo
     ? players
     : players.filter(p => p.id !== activePlayer.id);
   const eligiblePlayers  = candidatePlayers.filter(p => p.id !== mineLastActedBy);
-  const cooldownPlayer   = nonActivePlayers.find(p => p.id === mineLastActedBy) ?? null;
+  const cooldownPlayer   = players.filter(p => p.id !== activePlayer.id).find(p => p.id === mineLastActedBy) ?? null;
 
   const isOnline    = myPlayerId !== null && mineWindow !== null;
   const windowOpen  = mineWindow !== null;
