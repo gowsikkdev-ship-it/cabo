@@ -391,11 +391,10 @@ export function mineSelfElim(state, position) {
   const success = ownCard.value === discard.value;
   if (success) {
     const newPlayers = setCard(state.players, winner.id, position, null);
-    const newDiscard = state.discardPile.slice(0, -1);
     return addLog({
       ...state,
       players: newPlayers,
-      discardPile: newDiscard,
+      discardPile: [...state.discardPile, ownCard],
       mineWinner: null,
       mineChainMode: 'elimination',
       mineLastActedBy: winner.id,
@@ -426,11 +425,10 @@ export function mineOppElim(state, targetPlayerId, position) {
   const success = targetCard.value === discard.value;
   if (success) {
     const newPlayers = setCard(state.players, targetPlayerId, position, null);
-    const newDiscard = state.discardPile.slice(0, -1);
     return addLog({
       ...state,
       players: newPlayers,
-      discardPile: newDiscard,
+      discardPile: [...state.discardPile, targetCard],
       mineWinner: null,
       mineChainMode: 'elimination',
       mineLastActedBy: winner.id,
