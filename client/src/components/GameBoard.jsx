@@ -105,13 +105,14 @@ export default function GameBoard({
     [PHASES.CABO_RESOLUTION]:   'CABO! — Cards Revealed',
   }[phase] ?? phase;
 
-  function renderHand(p) {
+  function renderHand(p, flipped = false) {
     return (
       <PlayerHand
         key={p.id}
         player={p}
         isActive={p.id === activePlayer.id}
         isMineWinner={p.id === mineWinner}
+        flipped={flipped}
         drawnCard={p.id === activePlayer.id ? drawnCard : null}
         revealAll={revealAll}
         clickablePositions={getClickablePositions(p)}
@@ -174,7 +175,7 @@ export default function GameBoard({
         {/* Opponents row (top) */}
         {topPlayers.length > 0 && (
           <div className="table-row">
-            {topPlayers.map(renderHand)}
+            {topPlayers.map(p => renderHand(p, true))}
           </div>
         )}
 

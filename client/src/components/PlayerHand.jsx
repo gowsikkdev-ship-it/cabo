@@ -7,6 +7,7 @@ export default function PlayerHand({
   player,
   isActive,
   isMineWinner,
+  flipped = false,
   drawnCard = null,
   revealAll = false,
   clickablePositions = [],
@@ -59,7 +60,7 @@ export default function PlayerHand({
       </div>
 
       {/* Fixed 2×2 base grid + drawn card zone side by side when active */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', transform: flipped ? 'rotate(180deg)' : 'none' }}>
         <div className="hand-grid">
           {POSITIONS.map(pos => renderCard(pos))}
         </div>
