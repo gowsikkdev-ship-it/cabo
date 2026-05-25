@@ -15,6 +15,11 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { existsSync } from 'fs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 import redis from './redisClient.js';
 import * as db from './db.js';
@@ -621,6 +626,14 @@ io.on('connection', (socket) => {
     }
   });
 });
+
+// ── Serve built client (production) ──────────────────────────────────────────
+
+const clientDist = join(__dirname, '../client/dist');
+if (existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get('*', (_req, res) => res.sendFile(join(clientDist, 'index.html')));
+}
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 

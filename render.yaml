@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: cabo
+    env: node
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_URL
+        value: https://cabo-server-wdj5.onrender.com
+      - key: PORT
+        value: 10000
