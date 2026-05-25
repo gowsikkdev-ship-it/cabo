@@ -150,8 +150,8 @@ function OfflineGame({ onExit }) {
 function OnlineGame({ token, myPlayerId, onExit }) {
   const {
     connected, roomCode, players, gameState,
-    mineWindow, lastElimResult, error,
-    createRoom, joinRoom, sendReady, startGame, send,
+    mineWindow, lastElimResult, error, chatMessages,
+    createRoom, joinRoom, sendReady, startGame, send, sendChat,
   } = useGameSocket(token, myPlayerId);
 
   const [uiMode, setUiMode] = useState(null);
@@ -300,6 +300,8 @@ function OnlineGame({ token, myPlayerId, onExit }) {
         onResolveCabo={() => send(EVENTS.RESOLVE_CABO)}
         onCancelUiMode={resetUiMode}
         onEndGame={() => send(EVENTS.FORCE_END_GAME)}
+        chatMessages={chatMessages}
+        onSendChat={sendChat}
       />
     </>
   );

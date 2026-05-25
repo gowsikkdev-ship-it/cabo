@@ -31,6 +31,7 @@ export default function useGameSocket(token, myPlayerId) {
   const [mineWindow, setMineWindow]       = useState(null);
   const [lastElimResult, setLastElimResult] = useState(null);
   const [error, setError]                 = useState(null);
+  const [chatMessages, setChatMessages]   = useState([]);
   const socketRef = useRef(null);
 
   useEffect(() => {
@@ -71,6 +72,8 @@ export default function useGameSocket(token, myPlayerId) {
       if (result.success) sounds.win(); else sounds.fail();
     });
 
+    sock.on(EVENTS.CHAT_MSG, (msg) => setChatMessages(prev => [...prev.slice(-99), msg]));
+
     sock.on(EVENTS.ERROR,  ({ message }) => setError(message));
     sock.on(EVENTS.KICKED, ({ reason })  => { setError(reason); disconnectSocket(); });
 
@@ -89,10 +92,11 @@ export default function useGameSocket(token, myPlayerId) {
   const joinRoom   = useCallback((code) => send(EVENTS.JOIN_ROOM, { code }), [send]);
   const sendReady  = useCallback((ready = true) => send(EVENTS.PLAYER_READY, { ready }), [send]);
   const startGame  = useCallback(() => send(EVENTS.START_GAME), [send]);
+  const sendChat   = useCallback((message) => send(EVENTS.CHAT_SEND, { message }), [send]);
 
   return {
     connected, roomCode, players, gameState,
-    mineWindow, lastElimResult, error,
-    createRoom, joinRoom, sendReady, startGame, send,
+    mineWindow, lastElimResult, error, chatMessages,
+    createRoom, joinRoom, sendReady, startGame, send, sendChat,
   };
 }

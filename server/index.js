@@ -569,6 +569,19 @@ io.on('connection', (socket) => {
     applyAndBroadcast(room.code, (s) => startNewRound(s));
   });
 
+  socket.on(EVENTS.CHAT_SEND, ({ message }) => {
+    const room = rooms.getRoomBySocket(socket.id);
+    if (!room) return;
+    const text = String(message ?? '').trim().slice(0, 200);
+    if (!text) return;
+    io.to(room.code).emit(EVENTS.CHAT_MSG, {
+      playerId: socket.playerId,
+      name: socket.playerName,
+      text,
+      at: Date.now(),
+    });
+  });
+
   socket.on(EVENTS.FORCE_END_GAME, () => {
     if (rateLimited(socket)) return;
     const room = rooms.getRoomBySocket(socket.id);

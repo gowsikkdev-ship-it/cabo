@@ -153,7 +153,7 @@ export function drawCard(state) {
   const player = s.players[s.currentTurnIndex];
   return addLog({
     ...s, deck: newDeck, drawnCard: card, phase: PHASES.ACTION,
-    lastAction: action([{ fromRef: 'deck', toRef: `player-${player.id}`, card: null, faceUp: false }]),
+    lastAction: action([{ fromRef: 'deck', toRef: 'drawn-card', card: null, faceUp: false }]),
   }, `${player.name} draws a card`);
 }
 
@@ -174,6 +174,7 @@ export function actionSwap(state, position) {
     phase: PHASES.MINE,
     lastMove: `${player.name} swapped their ${position} card (discarded ${replaced.rank})`,
     lastAction: action([
+      { fromRef: 'drawn-card', toRef: `slot-${player.id}-${position}`, card: state.drawnCard, faceUp: false },
       { fromRef: `slot-${player.id}-${position}`, toRef: 'discard', card: replaced, faceUp: true },
     ]),
   }, `${player.name} swaps ${position}, discards ${replaced.rank}`);
@@ -193,7 +194,7 @@ export function actionUsePower(state) {
     powerPending: { type: card.power },
     swapFirst: null,
     lastMove: `${player.name} uses ${card.power} power (${card.rank})`,
-    lastAction: action([{ fromRef: `player-${player.id}`, toRef: 'discard', card, faceUp: true }]),
+    lastAction: action([{ fromRef: 'drawn-card', toRef: 'discard', card, faceUp: true }]),
   }, `${player.name} uses ${card.power} power (${card.rank})`);
 }
 
@@ -207,7 +208,7 @@ export function actionDiscard(state) {
     drawnCard: null,
     phase: PHASES.MINE,
     lastMove: `${player.name} discarded ${card.rank} (value ${card.value})`,
-    lastAction: action([{ fromRef: `player-${player.id}`, toRef: 'discard', card, faceUp: true }]),
+    lastAction: action([{ fromRef: 'drawn-card', toRef: 'discard', card, faceUp: true }]),
   }, `${player.name} discards ${card.rank}`);
 }
 

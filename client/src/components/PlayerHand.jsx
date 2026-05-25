@@ -7,6 +7,7 @@ export default function PlayerHand({
   player,
   isActive,
   isMineWinner,
+  drawnCard = null,
   revealAll = false,
   clickablePositions = [],
   selectedPositions = [],
@@ -57,9 +58,22 @@ export default function PlayerHand({
         )}
       </div>
 
-      {/* Fixed 2×2 base grid */}
-      <div className="hand-grid">
-        {POSITIONS.map(pos => renderCard(pos))}
+      {/* Fixed 2×2 base grid + drawn card zone side by side when active */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+        <div className="hand-grid">
+          {POSITIONS.map(pos => renderCard(pos))}
+        </div>
+
+        {/* Drawn card zone — always in DOM when active so animation can target it */}
+        {isActive && (
+          <div className="drawn-card-zone" data-ref="drawn-card">
+            <span className="drawn-card-zone-label">Drawn</span>
+            {drawnCard
+              ? <Card card={drawnCard} faceUp />
+              : <div className="drawn-card-placeholder" />
+            }
+          </div>
+        )}
       </div>
 
       {/* Penalty overflow cards — fully clickable like any other card */}

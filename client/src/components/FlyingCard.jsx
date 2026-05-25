@@ -33,7 +33,7 @@ export default function FlyingCard({ lastAction }) {
 
     if (newAnims.length === 0) return;
     setAnimations(newAnims);
-    const t = setTimeout(() => setAnimations([]), 500);
+    const t = setTimeout(() => setAnimations([]), 800);
     return () => clearTimeout(t);
   }, [lastAction?.id]);
 
